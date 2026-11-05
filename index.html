@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#14273D">
+<title>Editing Portal</title>
+<script id="embeddedConfig">window.__PORTAL__ = {url:'https://script.google.com/macros/s/AKfycbzPoP9UL7MSj9liriGmgkwxZwI9sDW0kWPLBaK7EKJA8mTpsSsnfWPe5AJ3qBH4qrn0/exec'};</script>
+<style>
+:root{
+  --navy:#14273D; --navy-2:#1F3B5C; --teal:#2E8B84; --teal-d:#226963; --teal-l:#E9F5F4;
+  --amber:#E2A63B; --amber-d:#9A6D14; --amber-l:#FCF1DA;
+  --green:#3F9142; --green-d:#2E6E31; --green-l:#E3F3E3;
+  --red:#C0483A; --red-d:#9B3A2F; --red-l:#FBE4E0;
+  --bg:#F4F3EF; --card:#fff; --text:#1F2933; --muted:#667085; --line:#E4E1D9; --r:10px;
+  --shadow:0 1px 2px rgba(20,39,61,.05),0 4px 14px rgba(20,39,61,.05);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
+button{font-family:inherit}
+.hidden{display:none!important}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.ic{flex-shrink:0;vertical-align:-3px}
+
+/* ---------- buttons / fields ---------- */
+.btn{border:1px solid transparent;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;line-height:1.2;transition:background .12s,border-color .12s}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--teal);color:#fff}.btn-primary:hover:not(:disabled){background:var(--teal-d)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover:not(:disabled){background:var(--green-d)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover:not(:disabled){background:var(--red-d)}
+.btn-ghost{background:#fff;color:var(--navy);border-color:var(--line)}.btn-ghost:hover:not(:disabled){border-color:var(--navy)}
+.btn-sm{padding:6px 11px;font-size:12px;border-radius:7px}
+.btn-block{width:100%;padding:11px 16px;font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row.end{justify-content:flex-end}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:650;color:#344054}
+.req{color:var(--red)}
+.field input,.field select,.field textarea{border:1px solid #D5D2C9;border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);width:100%}
+.field textarea{resize:vertical;min-height:64px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--teal);outline-offset:0;border-color:var(--teal)}
+.field input::placeholder,.field textarea::placeholder{color:#98A2B3}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+.pw{position:relative}.pw input{padding-right:42px}
+.pw button{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:7px;border-radius:6px}
+.pw button:hover{color:var(--navy);background:#F2F0EA}
+.alert{padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5}
+.alert.error{background:var(--red-l);color:var(--red-d);border:1px solid #F0C3BC}
+.alert.warn{background:var(--amber-l);color:#7A5410;border:1px solid #EFD9A6}
+
+/* ---------- auth screens ---------- */
+.auth{position:fixed;inset:0;display:grid;grid-template-columns:minmax(300px,1.05fr) minmax(340px,1fr);background:#fff;z-index:100;overflow:auto}
+.auth-side{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 75%);color:#fff;padding:52px 52px 40px;display:flex;flex-direction:column;justify-content:space-between;gap:32px;position:relative;overflow:hidden}
+.auth-side::after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;right:-160px;bottom:-160px;border:60px solid rgba(46,139,132,.18)}
+.logo{display:flex;align-items:center;gap:12px;font-weight:750;font-size:17px;letter-spacing:.2px}
+.mark{width:42px;height:42px;border-radius:11px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.auth-side h2{font-size:30px;line-height:1.2;margin:0 0 14px;font-weight:750;max-width:420px}
+.auth-side p{color:#C6D3E0;margin:0;font-size:14.5px;line-height:1.7;max-width:420px}
+.points{list-style:none;padding:0;margin:26px 0 0;display:flex;flex-direction:column;gap:13px;position:relative;z-index:1}
+.points li{display:flex;gap:11px;align-items:flex-start;color:#DCE6EF;font-size:13.5px;line-height:1.5}
+.points .ic{color:#7FDB84;margin-top:1px}
+.auth-foot{font-size:11.5px;color:#8FA3B8;position:relative;z-index:1}
+.auth-main{display:flex;align-items:center;justify-content:center;padding:32px 28px}
+.auth-form{width:100%;max-width:370px}
+.auth-form h1{margin:0 0 6px;font-size:23px;color:var(--navy);font-weight:750}
+.auth-form .lead{margin:0 0 24px;color:var(--muted);font-size:13.5px}
+.auth-form .field{margin-bottom:15px}
+.auth-note{margin-top:20px;font-size:12px;color:var(--muted);line-height:1.6;text-align:center}
+.linkbtn{background:none;border:none;color:var(--teal-d);font-size:12px;font-weight:650;cursor:pointer;text-decoration:underline;padding:0}
+.screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy),var(--navy-2));display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;z-index:100}
+.screen-card{background:#fff;border-radius:16px;max-width:560px;width:100%;padding:34px 30px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.screen-card h1{font-size:20px;color:var(--navy);margin:0 0 6px;text-align:center}
+.screen-card .lead{font-size:13px;color:var(--muted);text-align:center;margin:0 0 22px;line-height:1.7}
+.screen-card .mark{margin:0 auto 14px}
+
+/* ---------- shell ---------- */
+header.top{background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:3px solid var(--teal)}
+.brand{display:flex;gap:12px;align-items:center}
+.brand .mark{width:38px;height:38px;font-size:14px;border-radius:10px}
+.brand h1{font-size:15.5px;margin:0;font-weight:700}
+.conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;margin-top:2px;color:#B7C6D6}
+.conn i{width:7px;height:7px;border-radius:50%;background:#8a96a3;display:inline-block}
+.conn.ok i{background:#7FDB84}.conn.sync i{background:var(--amber)}.conn.err i{background:#F19484}
+.top-right{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.hstats{display:flex;gap:8px}
+.hs{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:4px 12px;min-width:66px;text-align:center}
+.hs b{display:block;font-size:16px;font-variant-numeric:tabular-nums;line-height:1.25}
+.hs span{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:#B0C1D3}
+.hs.p b{color:var(--amber)}.hs.c b{color:#7FDB84}.hs.r b{color:#F19484}
+.profile{position:relative}
+.prof-btn{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:4px 12px 4px 4px;cursor:pointer;text-align:left}
+.prof-btn:hover{background:rgba(255,255,255,.14)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--teal);color:#fff;font-weight:750;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.3px}
+.pname b{display:block;font-size:12.5px;line-height:1.2;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pname small{display:block;font-size:10.5px;color:#B0C1D3;line-height:1.3;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu{position:absolute;right:0;top:calc(100% + 8px);background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(20,39,61,.2);min-width:230px;padding:6px;z-index:60}
+.menu .who{padding:10px 12px 9px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu .who b{display:block;font-size:13.5px}.menu .who span{font-size:11.5px;color:var(--muted)}
+.menu button{width:100%;display:flex;gap:10px;align-items:center;background:none;border:none;padding:9px 12px;font-size:13px;font-weight:600;color:var(--navy);border-radius:7px;cursor:pointer;text-align:left}
+.menu button:hover{background:#F4F3EF}
+.menu button.danger{color:var(--red-d)}
+nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);padding:0 20px;gap:2px;overflow-x:auto}
+nav.tabs button{background:none;border:none;padding:13px 15px;font-size:13px;font-weight:650;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;display:flex;gap:8px;align-items:center}
+nav.tabs button:hover{color:var(--navy)}
+nav.tabs button.active{color:var(--navy);border-bottom-color:var(--teal)}
+nav.tabs .badge{background:var(--amber);color:#fff;border-radius:20px;font-size:10.5px;font-weight:800;padding:1px 7px}
+main{max-width:1280px;margin:0 auto;padding:20px 22px 60px}
+.view{display:none}.view.active{display:block}
+.banner{padding:10px 24px;font-size:13px;display:flex;gap:10px;align-items:center}
+.banner.warn{background:var(--amber-l);color:#7A5410;border-bottom:1px solid #EFD9A6}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 4px;font-size:15px;color:var(--navy);font-weight:700}
+.card .sub{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.6}
+.page-h{margin:0 0 14px}.page-h h2{margin:0;font-size:17px;color:var(--navy)}.page-h p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+.sec{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--teal-d);margin:22px 0 12px;display:flex;align-items:center;gap:8px}
+.sec:first-child{margin-top:0}.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.filters .field{min-width:140px}.filters .field.grow{flex:1;min-width:190px}.filters .push{margin-left:auto}
+.filters .field select,.filters .field input{padding:8px 10px;font-size:13px}
+
+.fcard{border:1px solid #CBD5D3;border-radius:12px;padding:16px 16px 6px;margin-bottom:16px;background:#FCFCFA;box-shadow:var(--shadow)}
+.fcard-h{display:flex;align-items:center;gap:10px;margin-bottom:6px}.fcard-h b{font-size:15px;color:var(--navy)}.fcard-h .btn{margin-left:auto}
+.amtnote{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:12.5px;line-height:1.55}
+.amtnote.inc{background:var(--amber-l);border:1px solid #EFD9A6;color:#7A5410}.amtnote.dec{background:var(--teal-l);border:1px solid #BFE0DD;color:var(--teal-d)}
+.decform{margin-top:12px;border:1.5px solid #9DB4D6;border-radius:10px;padding:14px;background:#F6F9FE}
+.decform h4{margin:0 0 10px;font-size:13.5px;color:#2A4D8F;font-family:Georgia,'Times New Roman',serif}
+.decform .sec{margin:16px 0 10px}
+.sigbox{display:flex;flex-direction:column;gap:6px}
+.sigpad{width:100%;max-width:420px;height:130px;background:#fff;border:1px dashed #9DB4D6;border-radius:8px;touch-action:none;cursor:crosshair}
+.pill.inc{background:var(--amber-l);color:var(--amber-d)}.pill.dec{background:var(--teal-l);color:var(--teal-d)}
+.fsum{margin:10px 0 0;border:1px solid var(--line);border-radius:8px;background:#FAF9F6;overflow:hidden}
+.fsum>div{padding:9px 12px;font-size:12.5px;line-height:1.85}.fsum>div+div{border-top:1px solid var(--line)}
+.fsum .fh{font-size:11.5px;color:var(--muted);font-weight:700;margin-bottom:1px}
+.fblock{border:1px solid var(--line);border-radius:10px;margin:16px 0 0;overflow:hidden}
+.fblock>.fb-h{padding:9px 14px;background:#EFEBE2;font-weight:700;font-size:13px;color:var(--navy);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.fblock>.fb-b{padding:12px 14px}
+/* the printed form: looks like the paper "Raseed Amount Editing Form" */
+.rsheet{background:#fff;color:#111;font-family:'Times New Roman',Times,serif;font-size:15px;line-height:1.7;padding:22px 26px;max-width:800px;margin:10px auto;border:1px solid #ddd;border-radius:6px;text-align:left}
+.rsheet h1{font-size:30px;margin:0 0 4px;text-align:center;color:#2A4D8F;font-weight:700}
+.rsheet h4{font-size:16px;margin:8px 0;text-align:center}
+.rsheet .rbox{border:1.5px solid #6F95C6;border-radius:4px;padding:14px 18px;margin:10px 0 14px}
+.rsheet p{margin:7px 0}.rsheet .fv{display:inline-block;min-width:120px;border-bottom:1.5px solid #222;padding:0 10px;margin:0 14px 0 4px;font-weight:400}
+.rsheet .fw{display:block;border-bottom:1.5px solid #222;padding:2px 4px;margin:6px 0 14px;min-height:30px;white-space:pre-wrap}
+.rsheet .rh{text-decoration:underline;font-weight:700}
+.rsheet .yn u{color:#2A4D8F;font-weight:700}.rsheet .yn s{text-decoration:none}
+.rsheet img.rsig{display:block;max-height:110px;max-width:280px;border-bottom:1.5px solid #222;margin-top:6px;background:#fff}
+.rsheet .ur{direction:rtl;unicode-bidi:plaintext;font-family:'Noto Nastaliq Urdu','Jameel Noori Nastaleeq','Times New Roman',serif}
+#printRoot{display:none}
+@media print{body.printing>*:not(#printRoot){display:none!important}body.printing #printRoot{display:block!important}body.printing .rsheet{border:none;margin:0 auto}}
+.picrow{margin-top:12px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.picrow .drop{flex:1;min-width:200px;padding:10px;font-size:12.5px}
+.picrow .drop img{max-height:90px}
+.boxinfo{margin-top:10px;padding:10px 13px;border-radius:9px;font-size:13px;line-height:1.6}
+.boxinfo.ok{background:var(--green-l);border:1px solid #BFE0BF}.boxinfo.none{background:#F4F3EF;border:1px solid var(--line);color:var(--muted)}
+.bulkinfo{font-size:12px;margin-top:6px}.bulkinfo.err{color:var(--red-d);font-weight:650}.bulkinfo.good{color:var(--green-d);font-weight:650}
+.fmt{font-family:Consolas,'SF Mono',monospace;font-size:12.5px;background:#EFEBE2;border-radius:6px;padding:8px 10px;line-height:1.6;white-space:pre}
+.pairs{width:auto;min-width:240px}.pairs td,.pairs th{padding:5px 12px;font-family:Consolas,monospace;font-size:12.5px}
+.btn-wa{background:#25D366;color:#053b17}.btn-wa:hover{background:#1FB958}
+.wa-preview{white-space:pre-wrap;background:#F4F3EF;border-radius:8px;padding:10px 12px;font-size:12.5px;max-height:190px;overflow:auto;margin:10px 0 14px;line-height:1.55}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-opt{display:inline-flex;align-items:center;gap:7px;border:1px solid #D5D2C9;border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;background:#fff;user-select:none}
+.chip-opt input{accent-color:var(--teal);width:15px;height:15px;margin:0}
+.chip-opt:has(input:checked){background:var(--teal-l);border-color:var(--teal);color:var(--teal-d);font-weight:650}
+.wa-ok{color:var(--green-d);font-weight:650;font-size:11.5px;white-space:nowrap}.wa-no{color:var(--muted);font-size:11.5px}
+.sendas{background:var(--teal-l);border:1px solid #BFE0DD;border-radius:9px;padding:11px 14px;font-size:13px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sendas b{color:var(--navy)}
+
+.ef{border:1px solid var(--line);border-radius:9px;margin-bottom:9px;background:#fff;overflow:hidden}
+.ef.on{border-color:var(--teal);background:#F4FBFA}
+.ef-t{display:flex;gap:10px;align-items:center;padding:11px 14px;cursor:pointer;font-weight:650;font-size:13.5px;color:var(--navy);user-select:none}
+.ef-t input{width:17px;height:17px;accent-color:var(--teal)}
+.ef-b{display:none;padding:0 14px 14px}.ef.on .ef-b{display:block}
+.drop{border:1.5px dashed #CFCBC0;border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:#fff;font-size:13px;color:var(--muted)}
+.drop:hover{border-color:var(--teal);color:var(--teal-d)}
+.drop img{max-width:100%;max-height:150px;border-radius:6px;margin-top:8px;display:none}
+
+.list{display:flex;flex-direction:column;gap:12px}
+.rc{background:#fff;border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:9px;padding:15px 17px;box-shadow:var(--shadow)}
+.rc.completed{border-left-color:var(--green)}.rc.returned{border-left-color:var(--red)}
+.rc .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.rc .idl{font-size:11px;color:var(--muted);font-weight:650;letter-spacing:.3px}
+.rc h3{margin:2px 0 3px;font-size:15px;color:var(--navy)}
+.rc .meta{font-size:12.5px;color:var(--muted)}.rc .meta b{color:var(--text)}
+.edits-mini{margin:10px 0 0;padding:10px 12px;background:#FAF9F6;border:1px solid var(--line);border-radius:8px;font-size:12.5px;line-height:1.85}
+.arrow{color:var(--muted);margin:0 4px}
+.old{color:var(--red-d);text-decoration:line-through;text-decoration-color:rgba(155,58,47,.5)}
+.new{color:var(--green-d);font-weight:700}
+.reply{margin-top:10px;padding:11px 13px;border-radius:8px;font-size:13px;line-height:1.6}
+.reply.completed{background:var(--green-l);border:1px solid #BFE0BF}
+.reply.returned{background:var(--red-l);border:1px solid #F0C3BC}
+.reply small{display:block;color:var(--muted);font-size:10.5px;margin-bottom:3px;font-weight:750;text-transform:uppercase;letter-spacing:.4px}
+.newtag{background:var(--red);color:#fff;font-size:9.5px;font-weight:800;border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;letter-spacing:.4px}
+.pill{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.pill.pending,.pill.warn{background:var(--amber-l);color:var(--amber-d)}
+.pill.completed,.pill.ok{background:var(--green-l);color:var(--green-d)}
+.pill.returned,.pill.off{background:var(--red-l);color:var(--red-d)}
+.pill.info{background:var(--teal-l);color:var(--teal-d)}
+.role{display:inline-block;font-size:10.5px;font-weight:750;background:#EFEBE2;color:var(--navy);padding:2px 8px;border-radius:5px;margin-left:5px;white-space:nowrap}
+.role.office{background:var(--teal-l);color:var(--teal-d)}.role.admin{background:var(--navy);color:#fff}
+.wait{font-size:11.5px;font-weight:700;color:var(--amber-d);white-space:nowrap}.wait.late{color:var(--red-d)}
+.chip{display:inline-block;background:var(--teal-l);color:var(--teal-d);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin:2px 4px 2px 0}
+
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--navy);color:#fff;text-align:left;padding:10px 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;font-weight:700}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tr.click{cursor:pointer}tr.click:hover{background:#FAF9F5}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13px}
+.empty .ico{width:46px;height:46px;border-radius:50%;background:#F1EFE8;color:#98A2B3;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.muted{color:var(--muted);font-size:11px}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-top:3px solid var(--teal);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:24px;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.2}
+.stat span{font-size:11.5px;color:var(--muted);font-weight:600}
+.stat.p{border-top-color:var(--amber)}.stat.c{border-top-color:var(--green)}.stat.r{border-top-color:var(--red)}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar{display:flex;align-items:center;gap:10px;font-size:12.5px}
+.bar .n{width:170px;flex-shrink:0;font-weight:600}
+.bar .t{flex:1;height:9px;background:#ECE9E1;border-radius:5px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--teal);border-radius:5px}
+.bar .v{width:34px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,39,61,.55);display:none;align-items:flex-start;justify-content:center;z-index:80;padding:20px;overflow:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:720px;width:100%;margin:auto;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.modal.sm{max-width:460px}
+.modal-h{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:#FAF9F6}
+.modal-h b{font-size:15px;color:var(--navy)}
+.modal-b{padding:18px 20px}
+.modal-f{padding:14px 20px;border-top:1px solid var(--line);background:#FAF9F6;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.modal-b .field{margin-bottom:13px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 18px;margin-bottom:6px}
+.kv .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.kv .v{font-size:13.5px;font-weight:600;margin-top:2px;word-break:break-word}
+.etable td,.etable th{padding:8px 10px}.etable th{background:#EFEBE2;color:var(--navy)}
+.thumb{max-width:160px;max-height:130px;border-radius:7px;border:1px solid var(--line);cursor:zoom-in}
+.actbox{margin-top:16px;padding:14px;background:#FAF9F6;border:1px solid var(--line);border-radius:9px}
+.tl{list-style:none;margin:8px 0 0;padding:0}
+.tl li{position:relative;padding:0 0 12px 22px;font-size:12.5px;border-left:2px solid var(--line);margin-left:6px;line-height:1.5}
+.tl li:last-child{border-left-color:transparent;padding-bottom:0}
+.tl li::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--teal);border:2px solid #fff}
+.tl li.completed::before{background:var(--green)}.tl li.returned::before{background:var(--red)}.tl li.reassigned::before,.tl li.resubmitted::before{background:var(--amber)}
+.tl .tm{color:var(--muted);font-size:11px}
+.creds{background:#F4FBFA;border:1px solid #BFE0DD;border-radius:10px;padding:14px 16px;margin:6px 0 4px}
+.creds div{display:flex;justify-content:space-between;gap:14px;padding:5px 0;font-size:13px;border-bottom:1px dashed #CFE6E3}
+.creds div:last-child{border-bottom:none}
+.creds span{color:var(--muted)}.creds b{font-family:Consolas,'SF Mono',monospace;font-size:14px;color:var(--navy);word-break:break-all;text-align:right}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:9px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;max-width:340px}
+.toast.show{opacity:1;transform:none}.toast.success{background:var(--green-d)}.toast.error{background:var(--red-d)}
+.codebox{width:100%;min-height:200px;font-family:Consolas,monospace;font-size:11.5px;background:#0F1B29;color:#CFE3E8;border:none;border-radius:8px;padding:14px;line-height:1.6}
+ol.steps{margin:0;padding-left:20px;font-size:13px;line-height:1.9}
+ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12px}
+
+@media(max-width:860px){
+  .auth{grid-template-columns:1fr}
+  .auth-side{padding:26px 24px;gap:14px}.auth-side h2{font-size:21px;margin-bottom:8px}.points,.auth-foot{display:none}.auth-side::after{display:none}
+  .auth-main{padding:26px 20px 40px;align-items:flex-start}
+}
+@media(max-width:700px){
+  header.top{padding:10px 14px}main{padding:14px}.two{grid-template-columns:1fr}.bar .n{width:110px}
+  .hstats{display:none}.pname{display:none}.prof-btn{padding:3px}
+  .screen-card{padding:24px 18px}
+  nav.tabs{padding:0 8px}nav.tabs button{padding:12px 11px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============== backend URL (first time only, when the file has no URL inside) ============== -->
+<div class="screen hidden" id="screenSetup">
+  <div class="screen-card">
+    <div class="mark">EP</div>
+    <h1>Connect to your Google Sheet</h1>
+    <p class="lead">Paste the <b>Web App URL</b> of the Apps Script backend. If your administrator sent you a ready-to-share file, this is already filled in and you will not see this page.</p>
+    <div class="field"><label for="setupUrl">Web App URL</label><input id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></div>
+    <div class="alert error hidden" id="setupErr" style="margin-top:12px"></div>
+    <div class="row" style="margin-top:16px;justify-content:center"><button class="btn btn-primary" id="setupGo">Connect</button></div>
+  </div>
+</div>
+
+<!-- ============== sign in ============== -->
+<div class="auth hidden" id="screenLogin">
+  <div class="auth-side">
+    <div class="logo"><div class="mark">EP</div><span>Editing Portal</span></div>
+    <div>
+      <h2>Record editing requests, handled properly.</h2>
+      <p>Send an editing request to the right Office Zimedar, get a reply, and keep a complete record of every change.</p>
+      <ul class="points" id="loginPoints"></ul>
+    </div>
+    <div class="auth-foot">Accounts are created by your administrator.</div>
+  </div>
+  <div class="auth-main">
+    <form class="auth-form" id="loginForm" autocomplete="on" novalidate>
+      <h1>Sign in</h1>
+      <p class="lead">Use the Emp Code and password given to you by the administrator.</p>
+      <div class="alert error hidden" id="lErr" role="alert" style="margin-bottom:14px"></div>
+      <div class="field"><label for="lCode">Emp Code</label><input id="lCode" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="e.g. SV-101"></div>
+      <div class="field"><label for="lPass">Password</label>
+        <div class="pw"><input id="lPass" name="password" type="password" autocomplete="current-password" placeholder="Your password"><button type="button" data-act="toggle-pw" data-target="lPass" aria-label="Show password" id="lToggle"></button></div></div>
+      <button class="btn btn-primary btn-block" id="lGo" type="submit">Sign in</button>
+      <div class="auth-note">Forgot your password? Ask the administrator to reset it.<span id="lServerWrap"><br><button type="button" class="linkbtn" data-act="change-url">Change server</button></span></div>
+    </form>
+  </div>
+</div>
+
+<!-- ============== APP ============== -->
+<div id="appShell" class="hidden">
+  <div class="banner warn hidden" id="adminBanner"></div>
+  <header class="top">
+    <div class="brand">
+      <div class="mark">EP</div>
+      <div><h1>Editing Portal</h1><div class="conn sync" id="conn"><i></i><span id="connText">Connecting…</span></div></div>
+    </div>
+    <div class="top-right">
+      <div class="hstats">
+        <div class="hs"><b id="hsT">0</b><span>Total</span></div>
+        <div class="hs p"><b id="hsP">0</b><span>Pending</span></div>
+        <div class="hs c"><b id="hsC">0</b><span>Completed</span></div>
+        <div class="hs r"><b id="hsR">0</b><span>Returned</span></div>
+      </div>
+      <div class="profile">
+        <button class="prof-btn" id="profBtn" aria-haspopup="true" aria-expanded="false"><span class="avatar" id="avatar"></span><span class="pname"><b id="pName"></b><small id="pRole"></small></span></button>
+        <div class="menu hidden" id="profMenu" role="menu">
+          <div class="who"><b id="mName"></b><span id="mSub"></span></div>
+          <button data-act="change-pw" id="mPw"></button>
+          <button data-act="logout" class="danger" id="mOut"></button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+
+  <main>
+    <!-- NEW REQUEST (field roles) -->
+    <section class="view" id="view-new">
+      <div class="page-h"><h2>New editing request</h2><p>One request can hold several forms &mdash; one for each slip / receipt that needs editing. Tick only the items that need editing.</p></div>
+      <div class="card">
+        <div class="sec">1 &middot; Sent by</div>
+        <div class="sendas" id="sendAs"></div>
+        <div class="grid hidden" id="fDistWrap" style="margin-top:12px"><div class="field"><label for="fDistrict">District of this request <span class="req">*</span></label><select id="fDistrict"></select><span class="hint">You work in more than one district. Choose the one this request belongs to.</span></div></div>
+
+        <div class="sec">2 &middot; Send to (Office Zimedar)</div>
+        <div class="grid"><div class="field"><label for="fOffice">Office Zimedar <span class="req">*</span></label>
+          <select id="fOffice"></select><span class="hint" id="fOfficeHint"></span></div></div>
+
+        <div class="sec">3 &middot; Forms</div>
+        <div id="formCards"></div>
+        <button class="btn btn-ghost" data-act="form-add" id="fAdd" style="margin-top:2px"></button>
+
+        <div class="row end" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+          <button class="btn btn-ghost" data-act="form-clear">Clear everything</button>
+          <button class="btn btn-primary" id="fSubmit">Send request</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MY REQUESTS (field roles) -->
+    <section class="view" id="view-my">
+      <div class="filters">
+        <div class="field"><label>Status</label>
+          <select id="myStatus"><option value="">All</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="returned">Returned</option></select></div>
+        <div class="field grow"><label>Search</label><input id="mySearch" placeholder="Name, emp code, receipt number, request ID…"></div>
+        <div class="push"><button class="btn btn-ghost" data-act="refresh" id="myRefresh"></button></div>
+      </div>
+      <div class="list" id="myList"></div>
+    </section>
+
+    <!-- INBOX (office) -->
+    <section class="view" id="view-inbox">
+      <div class="filters">
+        <div class="field"><label>District</label><select id="inDistrict"></select></div>
+        <div class="field grow"><label>Search</label><input id="inSearch" placeholder="Name, emp code, receipt number, sender…"></div>
+        <div class="push"><button class="btn btn-ghost" data-act="refresh" id="inRefresh"></button></div>
+      </div>
+      <p class="hint" style="margin:0 0 10px">Requests assigned to you that are waiting for a reply &mdash; oldest first.</p>
+      <div class="list" id="inList"></div>
+    </section>
+
+    <!-- RECORDS -->
+    <section class="view" id="view-records">
+      <div class="filters">
+        <div class="field"><label>Month (received)</label><select id="rMonth"></select></div>
+        <div class="field"><label>District</label><select id="rDistrict"></select></div>
+        <div class="field"><label>Status</label>
+          <select id="rStatus"><option value="">All</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="returned">Returned</option></select></div>
+        <div class="field" id="rOfficeWrap"><label>Office Zimedar</label><select id="rOffice"></select></div>
+        <div class="field"><label>Sender role</label><select id="rRole"></select></div>
+        <div class="field grow"><label>Search</label><input id="rSearch" placeholder="Name, emp code, receipt number, ID…"></div>
+        <div class="push row"><button class="btn btn-ghost" data-act="refresh" id="rRefresh"></button><button class="btn btn-primary" data-act="export" id="rExport"></button></div>
+      </div>
+      <div class="muted" id="rCount" style="margin:0 0 8px"></div>
+      <div class="tw"><table><thead><tr>
+        <th>ID</th><th>Received</th><th>District</th><th>Sent by</th><th>Editing for</th><th>Month / Book / Receipt</th>
+        <th>Edit types</th><th>Assigned to</th><th>Status</th><th>Replied</th><th>Response time</th>
+      </tr></thead><tbody id="rBody"></tbody></table></div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section class="view" id="view-dashboard">
+      <div class="filters">
+        <div class="field"><label>Month based on</label><select id="dBasis"><option value="received">Date received</option><option value="editing">Editing month</option></select></div>
+        <div class="field"><label>Month</label><select id="dMonth"></select></div>
+        <div class="field"><label>District</label><select id="dDistrict"></select></div>
+        <div class="field"><label>Late after (hours)</label><input id="dLate" type="number" min="1" value="48" style="width:110px"></div>
+        <div class="push"><button class="btn btn-ghost" data-act="refresh" id="dRefresh"></button></div>
+      </div>
+      <div class="stats" id="dStats"></div>
+      <div class="two">
+        <div class="card"><h2>By district</h2><p class="sub">Editing requests received per district</p><div class="bars" id="dDistrictBars"></div></div>
+        <div class="card"><h2>By editing type</h2><p class="sub">What is being corrected most often</p><div class="bars" id="dTypeBars"></div></div>
+      </div>
+      <div class="card"><h2>Month by month</h2><p class="sub">Volume and speed for each month</p><div class="tw"><table><thead><tr><th>Month</th><th>Total</th><th>Completed</th><th>Returned</th><th>Pending</th><th>Avg response</th></tr></thead><tbody id="dMonthBody"></tbody></table></div></div>
+      <div class="card"><h2>Requests by sender</h2><p class="sub">Who sent how many, grouped by district and role</p><div class="tw"><table><thead><tr><th>District</th><th>Role</th><th>Name</th><th>Sent</th><th>Completed</th><th>Returned</th><th>Pending</th><th>Avg response</th></tr></thead><tbody id="dSenderBody"></tbody></table></div></div>
+      <div class="card" id="dOfficeCard"><h2>By Office Zimedar</h2><p class="sub">Workload and response time for each Office Zimedar</p><div class="tw"><table><thead><tr><th>Office Zimedar</th><th>Received</th><th>Completed</th><th>Returned</th><th>Pending</th><th>Avg</th><th>Fastest</th><th>Slowest</th></tr></thead><tbody id="dOfficeBody"></tbody></table></div></div>
+      <div class="card"><h2>Late editing</h2><p class="sub" id="dLateSub"></p><div class="tw"><table><thead><tr><th>ID</th><th>District</th><th>Sent by</th><th>Editing for</th><th>Assigned to</th><th>Status</th><th>Time</th></tr></thead><tbody id="dLateBody"></tbody></table></div></div>
+    </section>
+
+    <!-- USERS (admin) -->
+    <section class="view" id="view-users">
+      <div class="page-h"><h2>User accounts</h2><p>Create accounts for Office Zimedars, Supervisors, Auditors, District Zimedars and Box Zimedars. Each person signs in with their own Emp Code and password and only sees the screens for their role.</p></div>
+      <div class="card">
+        <h2>Create an account</h2>
+        <p class="sub">The person must change this temporary password the first time they sign in.</p>
+        <div class="grid">
+          <div class="field"><label for="uName">Full name <span class="req">*</span></label><input id="uName" placeholder="e.g. Hussnain Ali" autocomplete="off"></div>
+          <div class="field"><label for="uEmp">Emp Code (used to sign in) <span class="req">*</span></label><input id="uEmp" placeholder="e.g. SV-101" autocomplete="off" autocapitalize="off"></div>
+          <div class="field"><label for="uRole">Role <span class="req">*</span></label><select id="uRole"></select></div>
+          <div class="field full" id="uDistWrap"><label>Districts <span class="req">*</span> <span class="muted">tick one or more</span></label><div class="chips" id="uDistricts"></div></div>
+          <div class="field hidden" id="uOfficeWrap"><label for="uOffice">Reports to (Office Zimedar) <span class="req">*</span></label><select id="uOffice"></select><span class="hint">Requests for this Box Zimedar go to this Office Zimedar automatically.</span></div>
+          <div class="field"><label for="uPhone">WhatsApp number <span class="muted">optional</span></label><input id="uPhone" type="tel" placeholder="e.g. 0300 1234567" autocomplete="off"><span class="hint">Used for the WhatsApp message buttons.</span></div>
+          <div class="field"><label for="uKey">CallMeBot key <span class="muted">optional</span></label><input id="uKey" placeholder="only for automatic messages" autocomplete="off"><span class="hint">Leave empty to use the one-tap WhatsApp button.</span></div>
+          <div class="field"><label for="uPass">Temporary password <span class="req">*</span></label>
+            <div class="row" style="flex-wrap:nowrap;gap:8px"><input id="uPass" autocomplete="off" style="flex:1;min-width:0;border:1px solid #D5D2C9;border-radius:8px;padding:9px 11px;font-size:14px;font-family:Consolas,monospace"><button class="btn btn-ghost" type="button" data-act="gen-pw" data-target="uPass">Generate</button></div>
+            <span class="hint">At least 6 characters.</span></div>
+        </div>
+        <div class="alert error hidden" id="uErr" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:14px"><button class="btn btn-primary" id="uCreate"></button></div>
+      </div>
+      <div class="filters">
+        <div class="field"><label>Role</label><select id="ufRole"></select></div>
+        <div class="field"><label>Status</label><select id="ufStatus"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+        <div class="field grow"><label>Search</label><input id="ufSearch" placeholder="Name or Emp Code…"></div>
+      </div>
+      <div class="muted" id="uCount" style="margin:0 0 8px"></div>
+      <div class="tw"><table><thead><tr><th>Name</th><th>Emp Code</th><th>Role</th><th>Districts</th><th>WhatsApp</th><th>Requests</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead><tbody id="uBody"></tbody></table></div>
+    </section>
+
+    <!-- PICTURES (admin) -->
+    <section class="view" id="view-storage">
+      <div class="page-h"><h2>Picture storage</h2><p>Delete old pictures to free Google Drive space. Only the picture files are deleted &mdash; every request, its details, replies and history stay in the portal.</p></div>
+      <div class="card">
+        <h2>Delete pictures by date</h2>
+        <p class="sub">Choose the dates the requests were <b>received</b>. Pictures of requests received between these two dates (including both days) will be deleted.</p>
+        <div class="grid" style="max-width:520px">
+          <div class="field"><label for="stFrom">From date</label><input id="stFrom" type="date"></div>
+          <div class="field"><label for="stTo">To date</label><input id="stTo" type="date"></div>
+        </div>
+        <div class="row" style="margin-top:10px"><span class="muted">Quick choice:</span>
+          <button class="btn btn-ghost btn-sm" data-act="st-quick" data-days="30">Older than 1 month</button>
+          <button class="btn btn-ghost btn-sm" data-act="st-quick" data-days="90">Older than 3 months</button>
+          <button class="btn btn-ghost btn-sm" data-act="st-quick" data-days="180">Older than 6 months</button></div>
+        <div class="alert warn hidden" id="stResult" style="margin-top:14px"></div>
+        <div class="row" style="margin-top:14px"><button class="btn btn-ghost" id="stCheck" data-act="st-check"></button><button class="btn btn-danger" id="stDelete" data-act="st-delete" disabled></button></div>
+        <p class="hint" style="margin-top:12px">Deleted pictures go to the Google Drive <b>Trash</b> of the portal owner and can be restored from there for 30 days. Empty the Trash to free space immediately.</p>
+      </div>
+    </section>
+
+    <!-- SETUP (admin) -->
+    <section class="view" id="view-setup">
+      <div class="card">
+        <h2>Portal link</h2>
+        <p class="sub">Send this link to your team on WhatsApp or by SMS. Anyone who opens it sees the sign-in page and signs in with their own Emp Code and password. Nobody needs a file. On a phone they can tap <b>Add to Home screen</b> in the browser menu to keep it like an app.</p>
+        <div class="field"><input id="sUrl" readonly></div>
+        <div class="row" style="margin-top:10px"><button class="btn btn-primary" data-act="copy-link" id="copyLinkBtn"></button><a class="btn btn-ghost" id="openLinkBtn" target="_blank" rel="noopener">Open link</a><a class="btn btn-wa" id="waLinkBtn" target="_blank" rel="noopener"></a></div>
+      </div>
+      <div class="card">
+        <h2>WhatsApp messages (free)</h2>
+        <p class="sub"><b>Works right away, no setup.</b> When someone sends, approves, returns or re-sends a request, a green <b>Open WhatsApp</b> button appears with the message already written for the right person. They only tap Send. This needs that person's WhatsApp number in their account.</p>
+        <p class="sub"><b>Optional: fully automatic messages.</b> The free CallMeBot service can send the message by itself, with no tap. Each person who should receive automatic messages does this once:</p>
+        <ol class="steps">
+          <li>Follow the steps at <b>callmebot.com</b> (&ldquo;Free API WhatsApp&rdquo;): save the CallMeBot number in the phone and send it the activation message from that person's WhatsApp.</li>
+          <li>CallMeBot replies with a short <b>key</b>.</li>
+          <li>In the <b>Users</b> tab, edit that person's account and paste the key in &ldquo;CallMeBot key&rdquo;. Press <b>Send test</b> to check.</li>
+        </ol>
+        <p class="hint" style="margin-top:10px">CallMeBot is an independent free service and can be slow or limited at times. If an automatic message fails, the portal still shows the Open WhatsApp button, and nothing is lost.</p>
+      </div>
+      <div class="card">
+        <h2>Storage</h2>
+        <p class="sub">Pictures take up Google Drive space. Use the <b>Pictures</b> tab to delete old pictures by date. Only the picture files are removed; every request and its history stay.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- request details -->
+<div class="modal-bg" id="modal"><div class="modal"><div class="modal-h"><b id="mTitle"></b><button class="btn btn-ghost btn-sm" data-act="close-modal">Close</button></div><div class="modal-b" id="mBody"></div></div></div>
+<!-- generic dialog -->
+<div class="modal-bg" id="dlg"><div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="modal-h"><b id="dTitle"></b><button class="btn btn-ghost btn-sm" data-act="close-dlg" id="dClose">Close</button></div>
+  <div class="modal-b"><div class="alert error hidden" id="dErr" role="alert" style="margin-bottom:13px"></div><div id="dBody"></div></div>
+  <div class="modal-f" id="dFoot"></div>
+</div></div>
+<div class="modal-bg" id="imgModal" data-act="close-img"><div class="modal" style="max-width:560px"><img id="imgBig" alt="" style="width:100%;display:block"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* browser storage can be blocked (private mode / embedded frame): never let that break the portal */
+const _mem={};
+const store={
+  get(k){ try{ const v=localStorage.getItem(k); if(v!==null) return v; }catch(e){} return k in _mem?_mem[k]:null; },
+  set(k,v){ _mem[k]=String(v); try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ delete _mem[k]; try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
+const DISTRICTS = ['Sargodha Metropolitan','Sargodha','Khushab','Mianwali','Bhakkar'];
+const FIELD_ROLES = ['District Zimedar','Supervisor','Auditor','Box Zimedar'];
+const DRM = 'Division Reporting Manager';
+const isOfficeLike = k => k==='office'||k==='drm';
+const ALL_ROLES = ['Office Zimedar','Division Reporting Manager','Supervisor','Auditor','District Zimedar','Box Zimedar'];
+const SUGG_DONATION = ['Zakat','Sadqa','Fitrana','Qurbani','General Donation'];
+const SUGG_SUB = ['Cash','Cheque','Online Transfer','Box Collection'];
+const EDIT_TYPES = [
+  {key:'slipDate',label:'Slip Date',input:'date'},
+  {key:'receiptNumber',label:'Receipt Number',input:'text'},
+  {key:'boxCode',label:'Box Code',input:'text'},
+  {key:'amount',label:'Amount',input:'number'},
+  {key:'donationType',label:'Donation Type',input:'list',options:SUGG_DONATION},
+  {key:'subType',label:'Sub Type',input:'list',options:SUGG_SUB},
+  {key:'purpose',label:'Purpose',input:'textarea'},
+  {key:'picture',label:'Picture',input:'picture'},
+  {key:'bulk',label:'Bulk Editing (change of slip numbers)',input:'bulk'}
+];
+const EDIT_LABEL = Object.fromEntries(EDIT_TYPES.map(t=>[t.key,t.label.replace(/ \(.*\)/,'')]));
+const STATUS_LABEL = {pending:'Pending',completed:'Completed',returned:'Returned'};
+const ACTION_LABEL = {forwarded:'Sent to Division Reporting Manager',notified:'WhatsApp alert sent automatically',notify_failed:'WhatsApp alert could not be sent',pictures_deleted:'Pictures deleted',submitted:'Submitted',returned:'Returned for correction',resubmitted:'Sent again',reassigned:'Reassigned',completed:'Completed'};
+const LS = {url:'portal_url_v3', session:'portal_session_v3', seen:'portal_seen_v3', last:'portal_last_code'};
+const POLL_MS = 45000;
+const TABS = {
+  field:[['new','New request','plus'],['my','My requests','file']],
+  office:[['inbox','Inbox','inbox'],['records','Records','list'],['dashboard','My report','chart']],
+  drm:[['inbox','Inbox','inbox'],['records','Records','list'],['dashboard','My report','chart']],
+  admin:[['dashboard','Dashboard','chart'],['records','All records','list'],['users','Users','users'],['storage','Pictures','image'],['setup','Setup','sliders']]
+};
+const ICON = {
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  file:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3"/>',
+  refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
+  download:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  undo:'<path d="M3 7v6h6M3 13a9 9 0 1 0 3-7"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:'<path d="M17.9 17.9A10.9 10.9 0 0 1 12 20C5 20 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9M9.9 4.2A9.1 9.1 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.2 3.2M1 1l22 22"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  empty:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  trash:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  wa:'<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/>',
+  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'
+};
+const ic = (n,sz=16)=>`<svg class="ic" width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const pad2 = n => String(n).padStart(2,'0');
+function fmtDT(iso){ const d=new Date(iso); if(!iso||isNaN(d)) return '-'; return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+', '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+function fmtMonthKey(k){ if(!k) return '-'; const [y,m]=k.split('-'); const d=new Date(+y,+m-1,1); return isNaN(d)?k:d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}); }
+function monthKeyOf(iso){ const d=new Date(iso); return isNaN(d)?'':d.getFullYear()+'-'+pad2(d.getMonth()+1); }
+function hoursBetween(a,b){ const t=(new Date(b)-new Date(a))/3600000; return isNaN(t)?null:Math.max(0,t); }
+function fmtDur(h){ if(h==null||isNaN(h)) return '-'; if(h<1) return Math.max(1,Math.round(h*60))+'m'; if(h<24) return h.toFixed(1)+'h'; return Math.floor(h/24)+'d '+Math.round(h%24)+'h'; }
+function avg(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : null; }
+function respHours(r){ return (r.status!=='pending' && r.processedAt)? hoursBetween(r.lastSubmittedAt||r.createdAt, r.processedAt) : null; }
+function waitHours(r){ return hoursBetween(r.lastSubmittedAt||r.createdAt, new Date().toISOString()); }
+function pill(s){ return `<span class="pill ${s}">${STATUS_LABEL[s]||s}</span>`; }
+function roleTag(r){ return `<span class="role ${r==='Office Zimedar'||r===DRM?'office':r==='Admin'?'admin':''}">${esc(r)}</span>`; }
+function toast(msg,type){ const t=$('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast',3600); }
+function opts(list,first){ return (first!==undefined?`<option value="">${esc(first)}</option>`:'')+list.map(x=>`<option>${esc(x)}</option>`).join(''); }
+function userDistricts(u){ return (u.districts&&u.districts.length)?u.districts:String(u.district||'').split(',').map(x=>x.trim()).filter(Boolean); }
+function distChips(id,selected){ return DISTRICTS.map(d=>`<label class="chip-opt"><input type="checkbox" name="${id}" value="${esc(d)}" ${selected&&selected.includes(d)?'checked':''}> ${esc(d)}</label>`).join(''); }
+function pickedDistricts(id){ return [...document.querySelectorAll(`input[name="${id}"]:checked`)].map(i=>i.value); }
+function initials(n){ const p=String(n||'?').trim().split(/\s+/); return ((p[0]||'?')[0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
+function matches(r,q){ if(!q) return true; q=q.toLowerCase(); return [r.id,r.senderName,r.senderEmpCode,r.assignedToName,r.officeName,r.replyText,...(r.forms||[]).map(f=>[f.editingForName,f.editingForEmpCode,f.receiptNumber,f.raseedBookNumber].join(' '))].join(' ').toLowerCase().includes(q); }
+function emptyState(msg){ return `<div class="empty"><div class="ico">${ic('empty',22)}</div>${esc(msg)}</div>`; }
+function editLine(e){
+  const lab = EDIT_LABEL[e.key]||e.key;
+  const clip=e.pic?` <span class="muted">${ic('image',12)} picture</span>`:'';
+  if(e.key==='picture') return `<b>${lab}:</b> new picture attached`;
+  if(e.key==='bulk'){ const pr=String(e.to).split('\n'); return `<b>${lab}:</b> ${pr.length} slip${pr.length===1?'':'s'} &mdash; <span class="new">${esc(pr.slice(0,3).join(', '))}${pr.length>3?', …':''}</span>${clip}`; }
+  const k=e.key==='amount'?amountKind(e.from,e.to):'';
+  const kp=k?` <span class="pill ${k==='increase'?'inc':'dec'}">${k==='increase'?'Increase':'Decrease'}</span>`:'';
+  return `<b>${lab}:</b> ${e.from?`<span class="old">${esc(e.from)}</span><span class="arrow">&rarr;</span>`:''}<span class="new">${esc(e.to)}</span>${kp}${clip}`;
+}
+function formsMini(r){
+  const fs=r.forms||[], many=fs.length>1;
+  return `<div class="fsum">${fs.slice(0,4).map((f,i)=>`<div>${many?`<div class="fh">Form ${i+1} &middot; ${esc(f.editingForName)} (${esc(f.editingForEmpCode)}) &middot; Receipt ${esc(f.receiptNumber)}</div>`:''}${f.edits.map(editLine).join('<br>')}${f.decrease?` <span class="muted">${ic('file',12)} Raseed Amount Editing Form attached</span>`:''}</div>`).join('')}${fs.length>4?`<div class="muted">… and ${fs.length-4} more form${fs.length-4===1?'':'s'}</div>`:''}</div>`;
+}
+function whoLine(r){
+  const f=(r.forms||[])[0]||{}, n=(r.forms||[]).length;
+  return `${esc(f.editingForName)} <span class="muted">(${esc(f.editingForEmpCode)})</span>${n>1?` <span class="pill info">${n} forms</span>`:''}`;
+}
+function genPassword(){
+  const A='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789', a=new Uint32Array(9); crypto.getRandomValues(a);
+  return Array.from(a).map(n=>A[n%A.length]).join('').slice(0,8);
+}
+
+/* ================================================================
+   STATE / API
+   ================================================================ */
+const S = {pics:{},forms:[],formSeq:0,autoOffice:false,drm:[],session:null, requests:[], office:[], users:[], version:null, tab:'', timer:null, busy:false, snap:null, newMarks:new Set(), pic:null, openId:null, loaded:false, dlgLocked:false};
+
+function embeddedUrl(){ const u=(window.__PORTAL__&&window.__PORTAL__.url)||''; return u && u.indexOf('__EXEC')!==0 ? u : ''; }
+function getUrl(){ return embeddedUrl() || store.get(LS.url) || ''; }
+const U = () => S.session && S.session.user;
+async function api(action,data){
+  const url=getUrl(); if(!url) throw new Error('The server address is not set.');
+  let res;
+  try{ res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,token:S.session&&S.session.token},data||{}))}); }
+  catch(e){ throw new Error('Cannot reach the server. Please check your internet connection.'); }
+  let j; try{ j=await res.json(); }catch(e){ throw new Error('The server returned an unexpected reply. Please check that the Web App is deployed with access set to "Anyone".'); }
+  if(!j.ok){ const auth=/^AUTH:/.test(j.error||''); const err=new Error((j.error||'Something went wrong').replace(/^AUTH:\s*/,'')); err.auth=auth; throw err; }
+  return j.data;
+}
+function saveSession(){ store.set(LS.session,JSON.stringify(S.session)); }
+function loadSession(){ try{ return JSON.parse(store.get(LS.session)); }catch(e){ return null; } }
+function seenKey(){ return LS.seen+':'+(U()?U().id:''); }
+function seenMap(){ try{ return JSON.parse(store.get(seenKey()))||{}; }catch(e){ return {}; } }
+
+/* ================================================================
+   SCREENS
+   ================================================================ */
+function show(id){ ['screenSetup','screenLogin','appShell'].forEach(x=>$(x).classList.toggle('hidden',x!==id)); }
+
+$('setupGo').addEventListener('click', async()=>{
+  const url=$('setupUrl').value.trim(), err=$('setupErr'); err.classList.add('hidden');
+  if(!/^https:\/\/script\.google\.com\/.+/.test(url)){ err.textContent='Please paste a valid Google Apps Script Web App URL (it starts with https://script.google.com/).'; err.classList.remove('hidden'); return; }
+  store.set(LS.url,url);
+  try{ await api('ping'); showLogin(); }
+  catch(e){ store.del(LS.url); err.textContent=e.message; err.classList.remove('hidden'); }
+});
+
+function showLogin(msg){
+  show('screenLogin');
+  $('loginPoints').innerHTML=['Requests go straight to the Office Zimedar you choose','Replies reach you as soon as they are given','Every editing keeps a complete history'].map(t=>`<li>${ic('check',16)}<span>${t}</span></li>`).join('');
+  $('lToggle').innerHTML=ic('eye',18);
+  $('lServerWrap').classList.toggle('hidden', !!embeddedUrl());
+  const e=$('lErr'); if(msg){ e.textContent=msg; e.classList.remove('hidden'); } else e.classList.add('hidden');
+  $('lCode').value=store.get(LS.last)||''; $('lPass').value='';
+  setTimeout(()=>($('lCode').value?$('lPass'):$('lCode')).focus(),30);
+}
+
+$('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const code=$('lCode').value.trim(), pw=$('lPass').value, err=$('lErr'), btn=$('lGo'); err.classList.add('hidden');
+  if(!code||!pw){ err.textContent='Please enter your Emp Code and password.'; err.classList.remove('hidden'); return; }
+  btn.disabled=true; btn.textContent='Signing in…';
+  try{
+    S.session=null;
+    const d=await api('login',{empCode:code,password:pw});
+    S.session={token:d.token,user:d.user}; S.adminDefault=!!d.adminDefaultPassword;
+    store.set(LS.last,code); saveSession(); enter();
+  }catch(ex){ S.session=null; err.textContent=ex.message; err.classList.remove('hidden'); $('lPass').value=''; $('lPass').focus(); }
+  finally{ btn.disabled=false; btn.textContent='Sign in'; }
+});
+
+function logout(msg){
+  store.del(LS.session); S.session=null; clearInterval(S.timer); closeDlg(true); closeModal();
+  S.requests=[]; S.users=[]; S.office=[]; S.version=null; S.snap=null; S.loaded=false; document.title='Editing Portal';
+  $('profMenu').classList.add('hidden'); showLogin(msg);
+}
+
+/* ================================================================
+   ENTER APP
+   ================================================================ */
+function enter(){
+  const u=U();
+  show('appShell'); renderProfile();
+  $('adminBanner').classList.toggle('hidden',!(u.kind==='admin'&&S.adminDefault));
+  $('adminBanner').innerHTML=`${ic('shield',18)}<span><b>Security reminder:</b> you are still using the default administrator password. Change <code>ADMIN_PASSWORD</code> in the Apps Script code, then redeploy.</span>`;
+  $('tabs').innerHTML = TABS[u.kind].map(([k,l,i])=>`<button data-tab="${k}">${ic(i,16)}<span>${l}</span> <span class="badge hidden" id="bd-${k}">0</span></button>`).join('');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  if(u.kind==='field') buildForm();
+  buildStaticIcons(); fillFilters();
+  S.snap=null; S.version=null; S.requests=[]; S.newMarks=new Set(); S.loaded=false;
+  if(u.mustChange){ showTab(TABS[u.kind][0][0]); openPwDialog(true); return; }
+  start();
+}
+function start(){
+  showTab(TABS[U().kind][0][0]); refresh(true);
+  clearInterval(S.timer); S.timer=setInterval(()=>{ if(!document.hidden && S.session && !U().mustChange) refresh(false); },POLL_MS);
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && S.session && U() && !U().mustChange) refresh(false); });
+
+function renderProfile(){
+  const u=U(), sub=u.kind==='admin'?'Administrator':(u.role+(u.district?' · '+u.district:''));
+  $('avatar').textContent=initials(u.name); $('pName').textContent=u.name; $('pRole').textContent=sub;
+  $('mName').textContent=u.name; $('mSub').textContent=`${sub} · ${u.empCode}`;
+  $('mPw').innerHTML=ic('key',16)+' Change password'; $('mPw').classList.toggle('hidden',u.kind==='admin');
+  $('mOut').innerHTML=ic('logout',16)+' Sign out';
+}
+function buildStaticIcons(){
+  $('myRefresh').innerHTML=ic('refresh')+' Refresh'; $('inRefresh').innerHTML=ic('refresh')+' Refresh'; $('rRefresh').innerHTML=ic('refresh'); $('rRefresh').title='Refresh';
+  $('dRefresh').innerHTML=ic('refresh')+' Refresh'; $('rExport').innerHTML=ic('download')+' Export CSV';
+  $('fSubmit').innerHTML=ic('send')+' Send request'; $('uCreate').innerHTML=ic('userplus')+' Create account';
+  $('copyLinkBtn').innerHTML=ic('copy')+' Copy link'; $('waLinkBtn').innerHTML=ic('wa')+' Share on WhatsApp';
+}
+function fillFilters(){
+  $('inDistrict').innerHTML=opts(DISTRICTS,'All districts'); $('rDistrict').innerHTML=opts(DISTRICTS,'All districts'); $('dDistrict').innerHTML=opts(DISTRICTS,'All districts');
+  $('rRole').innerHTML=opts(FIELD_ROLES,'All roles');
+  const admin=U().kind==='admin';
+  $('rOfficeWrap').classList.toggle('hidden',!admin); $('dOfficeCard').classList.toggle('hidden',!admin);
+  if(admin){ $('uRole').innerHTML=opts(ALL_ROLES,'Select role'); $('uDistricts').innerHTML=distChips('uDist'); $('ufRole').innerHTML=opts(ALL_ROLES,'All roles'); $('uPass').value=genPassword(); $('uDistWrap').classList.remove('hidden'); }
+}
+function showTab(k){
+  if(S.tab==='my' && k!=='my') S.newMarks.clear();
+  S.tab=k;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===k));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+k));
+  renderTab();
+}
+
+/* ================================================================
+   DATA REFRESH
+   ================================================================ */
+function setConn(state,text){ $('conn').className='conn '+state; $('connText').textContent=text; }
+async function refresh(force){
+  if(S.busy||!S.session) return; S.busy=true; setConn('sync','Syncing…');
+  try{
+    const d=await api('list',{ifVersion: force?null:S.version});
+    S.loaded=true;
+    if(!d.unchanged) applyData(d);
+    setConn('ok','Connected · '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
+    if(d.unchanged) renderAll();
+  }catch(e){
+    if(e.auth){ logout(e.message); }
+    else{ setConn('err','Offline'); if(force) toast(e.message,'error'); }
+  }finally{ S.busy=false; }
+}
+function applyData(d){
+  const prev=S.snap, kind=U().kind;
+  const snap={}; d.requests.forEach(r=>snap[r.id]=[r.status,r.processedAt,r.assignedToId,r.resubmitCount].join('|'));
+  if(prev){
+    if(isOfficeLike(kind)){
+      const fresh=d.requests.filter(r=>{
+        if(r.status!=='pending'||r.assignedToId!==U().id) return false;
+        if(!(r.id in prev)) return true;
+        const p=prev[r.id].split('|'); return p[2]!==r.assignedToId || p[3]!==String(r.resubmitCount);
+      });
+      if(fresh.length) toast(`${fresh.length} new editing request${fresh.length>1?'s':''} received`,'success');
+    }else if(kind==='field'){
+      const got=d.requests.filter(r=>r.status!=='pending' && prev[r.id] && prev[r.id]!==snap[r.id]);
+      if(got.length) toast(`${got.length} request${got.length>1?'s have':' has'} received a reply`,'success');
+    }
+  }
+  S.snap=snap; S.requests=d.requests; S.office=d.office||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
+  renderAll();
+}
+
+/* ================================================================
+   RENDER DISPATCH
+   ================================================================ */
+function counts(){ const c={t:S.requests.length,p:0,c:0,r:0}; S.requests.forEach(r=>{ if(r.status==='pending')c.p++; else if(r.status==='completed')c.c++; else c.r++; }); return c; }
+function unreadIds(){ const seen=seenMap(); return S.requests.filter(r=>r.status!=='pending' && r.processedAt && seen[r.id]!==r.processedAt).map(r=>r.id); }
+function renderAll(){
+  const c=counts(); $('hsT').textContent=c.t; $('hsP').textContent=c.p; $('hsC').textContent=c.c; $('hsR').textContent=c.r;
+  renderTab(); updateBadges();
+}
+function updateBadges(){
+  const kind=U().kind; let n=0;
+  if(isOfficeLike(kind)){ n=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===U().id).length; setBadge('inbox',n); }
+  if(kind==='field'){ n=unreadIds().length; setBadge('my',n); }
+  document.title=(n?`(${n}) `:'')+'Editing Portal';
+}
+function setBadge(tab,n){ const b=$('bd-'+tab); if(!b) return; b.textContent=n; b.classList.toggle('hidden',!n); }
+function renderTab(){
+  switch(S.tab){
+    case 'new': renderOfficeSelect(); break;
+    case 'my': renderMy(); break;
+    case 'inbox': renderInbox(); break;
+    case 'records': renderRecords(); break;
+    case 'dashboard': renderDashboard(); break;
+    case 'users': renderUsers(); break;
+    case 'setup': { const l=getUrl(); $('sUrl').value=l; $('openLinkBtn').href=l||'#'; $('waLinkBtn').href='https://wa.me/?text='+encodeURIComponent('Editing Portal - sign in with your Emp Code and password:\n'+l); } break;
+    case 'storage': renderStorage(); break;
+  }
+}
+const loadingHtml = `<div class="card"><div class="loading">Loading…</div></div>`;
+
+/* ================================================================
+   FIELD: new request form
+   ================================================================ */
+function buildForm(){
+  const u=U(), ds=userDistricts(u);
+  $('sendAs').innerHTML=`<span>Sending as</span> <b>${esc(u.name)}</b> ${roleTag(u.role)} <span>&middot;</span> <b>${esc(ds.join(', '))}</b> <span>&middot;</span> <span>Emp Code ${esc(u.empCode)}</span>`;
+  $('fDistWrap').classList.toggle('hidden',ds.length<2); $('fDistrict').innerHTML=opts(ds,'Select district…');
+  $('fAdd').innerHTML=ic('plus',16)+' Add another form';
+  $('formCards').innerHTML=''; S.forms=[]; S.pics={}; S.formSeq=0; S.autoOffice=false;
+  addForm();
+}
+function fq(uid,name){ return document.querySelector(`#fc_${uid} [data-f="${name}"]`); }
+function fv(uid,name){ const e=fq(uid,name); return e?String(e.value||'').trim():''; }
+function today(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function addForm(){
+  if(S.forms.length>=20){ toast('At most 20 forms in one request.','error'); return; }
+  const uid='f'+(++S.formSeq); S.forms.push(uid);
+  const wrap=document.createElement('div'); wrap.innerHTML=formCardHtml(uid); $('formCards').appendChild(wrap.firstElementChild);
+  renumberForms(); return uid;
+}
+function renumberForms(){
+  S.forms.forEach((uid,i)=>{ const c=$('fc_'+uid); c.querySelector('.fcard-t').textContent=`Form ${i+1}`; c.querySelector('[data-act="form-remove"]').classList.toggle('hidden',S.forms.length<2); });
+  $('fAdd').classList.toggle('hidden',S.forms.length>=20);
+}
+function removeForm(uid){
+  if(S.forms.length<2) return; S.forms=S.forms.filter(x=>x!==uid);
+  Object.keys(S.pics).filter(k=>k.indexOf(uid+'_')===0).forEach(k=>delete S.pics[k]);
+  $('fc_'+uid).remove(); renumberForms();
+}
+function formCardHtml(uid){
+  const blocks=EDIT_TYPES.map(t=>`<div class="ef" id="ef_${uid}_${t.key}"><label class="ef-t"><input type="checkbox" class="ef-check" data-uid="${uid}" data-key="${t.key}"> ${esc(t.label)}</label><div class="ef-b">${editBody(uid,t)}</div></div>`).join('');
+  return `<div class="fcard" id="fc_${uid}" data-uid="${uid}">
+    <div class="fcard-h"><b class="fcard-t">Form</b><span class="muted">one slip / receipt</span><button class="btn btn-ghost btn-sm" data-act="form-remove" data-uid="${uid}">${ic('trash',14)} Remove</button></div>
+    <div class="sec">Whose record is this?</div>
+    <div class="grid">
+      <div class="field"><label>Employee Code <span class="req">*</span></label><input data-f="emp" placeholder="e.g. 77437" autocomplete="off"></div>
+      <div class="field"><label>Name <span class="req">*</span></label><input data-f="name" placeholder="Full name"></div>
+      <div class="field"><label>Editing Month <span class="req">*</span></label><input data-f="month" type="month"></div>
+      <div class="field"><label>Raseed Book Number <span class="req">*</span></label><input data-f="book" placeholder="e.g. MAB/26/56023"></div>
+      <div class="field"><label>Receipt Number <span class="req">*</span></label><input data-f="receipt" placeholder="e.g. 5602299"></div>
+    </div>
+    <div class="boxinfo none hidden" data-f="boxinfo"></div>
+    <div class="sec">What needs editing?</div>
+    ${blocks}
+  </div>`;
+}
+function inputHtml(uid,t,which,ph){
+  const f=`${t.key}_${which}`;
+  if(t.input==='textarea') return `<textarea data-f="${f}" placeholder="${esc(ph)}"></textarea>`;
+  if(t.input==='list') return `<input data-f="${f}" list="dl_${t.key}" placeholder="${esc(ph)}"><datalist id="dl_${t.key}">${t.options.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>`;
+  return `<input data-f="${f}" type="${t.input}" placeholder="${esc(ph)}">`;
+}
+function picBlock(key,required){
+  return `<div class="picrow"><div class="drop" data-act="pick-pic" data-key="${key}" id="pd_${key}"><span id="pl_${key}">${required?'Tap to choose the picture':'Attach a picture (optional)'}</span><br><img id="pp_${key}" alt="Selected picture"></div>
+    <input type="file" id="pf_${key}" data-key="${key}" class="pfile hidden" accept="image/*"><button type="button" class="btn btn-ghost btn-sm hidden" id="pr_${key}" data-act="rm-pic" data-key="${key}">Remove picture</button></div>`;
+}
+function sigBlock(uid,sig,label){
+  const key=`${uid}_${sig}`;
+  return `<div class="field"><label>${label} <span class="req">*</span></label><div class="sigbox"><canvas class="sigpad" id="sg_${key}" data-key="${key}" width="560" height="190"></canvas>
+    <div class="row"><button type="button" class="btn btn-ghost btn-sm" data-act="sig-clear" data-key="${key}">Clear</button>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer">Upload a picture of the sign<input type="file" class="sigfile hidden" data-key="${key}" accept="image/*"></label><span class="muted" id="sgs_${key}">Not signed yet</span></div>
+    <span class="hint">Draw the sign with your finger or mouse, or upload a picture of it.</span></div></div>`;
+}
+function decForm(uid){
+  return `<div class="decform hidden" data-f="decwrap"><h4>Raseed Amount Editing Form</h4>
+    <div class="sec">Fill by Box Zimedar</div>
+    <div class="grid">
+      <div class="field"><label>Contact No of Box Zimedar <span class="req">*</span></label><input data-f="d_contactNo" type="tel" placeholder="+92 3xx xxxxxxx"></div>
+      <div class="field"><label>Date <span class="req">*</span></label><input data-f="d_formDate" type="date"></div>
+      <div class="field"><label>Division Zimedar (Punjab District Zimedar) <span class="req">*</span></label><input data-f="d_divisionZimedar" placeholder="Name"></div>
+      <div class="field"><label>Receipt Date <span class="req">*</span></label><input data-f="d_receiptDate" type="date"></div>
+      <div class="field"><label>Box Code <span class="req">*</span></label><input data-f="d_boxCode" placeholder="e.g. A20975"></div>
+      <div class="field full"><label>Reason for editing <span class="req">*</span></label><textarea data-f="d_reason" dir="auto" placeholder="Why does the amount need to be lowered?"></textarea></div>
+    </div>
+    <div class="grid" style="margin-top:6px">${sigBlock(uid,'boxSign','Box Zimedar sign')}</div>
+    <div class="sec">Fill by District / Division Zimedar</div>
+    <div class="grid">
+      <div class="field"><label>Donor verification via meetup / call <span class="req">*</span></label><select data-f="d_donorVerified"><option value="">Select…</option><option>Yes</option><option>No</option></select><span class="hint">Did you confirm with the donor by phone call or by meeting?</span></div>
+      <div class="field"><label>Attached donor copy with the form? <span class="req">*</span></label><select data-f="d_donorCopyAttached"><option value="">Select…</option><option>Yes</option><option>No</option></select><span class="hint">If Yes, attach the donor copy with &ldquo;Attach a picture&rdquo; in the Amount item above.</span></div>
+      <div class="field full"><label>Donor remarks</label><textarea data-f="d_donorRemarks" dir="auto"></textarea></div>
+      <div class="field full"><label>District / Division Zimedar remarks <span class="req">*</span></label><textarea data-f="d_zimedarRemarks" dir="auto"></textarea></div>
+      <div class="field"><label>District / Division Zimedar name <span class="req">*</span></label><input data-f="d_zimedarName" placeholder="Name"></div>
+    </div>
+    <div class="grid" style="margin-top:6px">${sigBlock(uid,'zimedarSign','District / Division Zimedar sign')}</div>
+  </div>`;
+}
+function editBody(uid,t){
+  const pk=`${uid}_${t.key}`;
+  if(t.input==='picture') return `<div class="field"><label>The new picture <span class="req">*</span></label></div>${picBlock(pk,true)}`;
+  if(t.input==='bulk') return `<div class="field"><label>Slip numbers to change <span class="req">*</span></label>
+      <textarea data-f="bulk_to" rows="5" placeholder="1428301=1428302&#10;1428302=1428303&#10;1428303=1428301" spellcheck="false" style="font-family:Consolas,monospace"></textarea>
+      <span class="hint">One slip per line, written as <b>OldSlip=NewSlip</b>. Example:</span><div class="fmt">1428301=1428302\n1428302=1428303\n1428303=1428301</div>
+      <div class="bulkinfo" data-f="bulkinfo"></div></div>${picBlock(pk,false)}`;
+  if(t.key==='amount') return `<div class="grid"><div class="field"><label>Previous amount (what it is now) <span class="req">*</span></label><input data-f="amount_from" inputmode="decimal" placeholder="e.g. 840"></div><div class="field"><label>New amount (what it should be) <span class="req">*</span></label><input data-f="amount_to" inputmode="decimal" placeholder="e.g. 200"></div></div>
+      <div class="amtnote hidden" data-f="amtnote"></div>${decForm(uid)}${picBlock(pk,false)}`;
+  return `<div class="grid"><div class="field"><label>Current (incorrect) value <span class="muted">optional</span></label>${inputHtml(uid,t,'from','What it says now')}</div><div class="field"><label>Correct / new value <span class="req">*</span></label>${inputHtml(uid,t,'to','What it should be')}</div></div>${picBlock(pk,false)}`;
+}
+function parseBulk(text){
+  const pairs=[], olds=new Set(); const lines=String(text||'').split(/\r?\n/);
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim(); if(!line) continue;
+    const m=/^([^\s=]+)\s*=\s*([^\s=]+)$/.exec(line);
+    if(!m) return {error:`Line ${i+1}: write it as OldSlip=NewSlip (for example 1428301=1428302).`};
+    if(m[1]===m[2]) return {error:`Line ${i+1}: the old and new slip numbers are the same.`};
+    if(olds.has(m[1])) return {error:`Line ${i+1}: slip ${m[1]} is listed twice.`};
+    olds.add(m[1]); pairs.push(m[1]+'='+m[2]);
+  }
+  if(!pairs.length) return {error:'Enter at least one OldSlip=NewSlip line.',empty:true};
+  if(pairs.length>300) return {error:'At most 300 slips per request.'};
+  return {pairs};
+}
+function amountNum(v){ const t=String(v==null?'':v).replace(/[,\s]/g,''); return /^\d+(\.\d+)?$/.test(t)?Number(t):NaN; }
+function amountKind(from,to){ const a=amountNum(from), b=amountNum(to); if(isNaN(a)||isNaN(b)||a===b) return ''; return b>a?'increase':'decrease'; }
+function updateAmountKind(uid){
+  const k=amountKind(fv(uid,'amount_from'),fv(uid,'amount_to')), note=fq(uid,'amtnote'), dw=fq(uid,'decwrap');
+  note.classList.toggle('hidden',!k); dw.classList.toggle('hidden',k!=='decrease');
+  note.className='amtnote '+(k==='increase'?'inc':k==='decrease'?'dec':'hidden');
+  note.innerHTML = k==='increase' ? `${ic('chart',14)} <b>Amount increase.</b> The Office Zimedar will send this to the Division Reporting Manager, who does the editing and replies.`
+    : k==='decrease' ? `${ic('file',14)} <b>Amount decrease.</b> Please fill the <b>Raseed Amount Editing Form</b> below. The Office Zimedar receives it as a form (and PDF) exactly like the paper form.` : '';
+  if(k==='decrease'){
+    const c=$('fc_'+uid); const set=(n,v)=>{ const e=fq(uid,n); if(e&&!e.value&&v) e.value=v; };
+    set('d_formDate',today()); set('d_boxCode',''); if(S.drm&&S.drm.length===1) set('d_divisionZimedar',S.drm[0].name);
+    if(c.dataset.boxPhone) set('d_contactNo','+'+c.dataset.boxPhone);
+    initSigPads(uid);
+  }
+}
+function setSig(key,data){
+  S.pics[key]=data||null; const st=$('sgs_'+key); if(st) st.textContent=data?'Signed ✓':'Not signed yet';
+  const cv=$('sg_'+key); if(cv&&!data){ const x=cv.getContext('2d'); if(x) x.clearRect(0,0,cv.width,cv.height); }
+}
+function initSigPads(uid){
+  document.querySelectorAll(`#fc_${uid} canvas.sigpad`).forEach(cv=>{
+    if(cv._ready) return; cv._ready=true; const x=cv.getContext('2d'); if(!x) return; x.lineWidth=3; x.lineCap='round'; x.lineJoin='round'; x.strokeStyle='#0F2A5A';
+    let down=false, dirty=false;
+    const pos=e=>{ const r=cv.getBoundingClientRect(); return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]; };
+    cv.addEventListener('pointerdown',e=>{ down=true; try{cv.setPointerCapture(e.pointerId);}catch(_){} const [px,py]=pos(e); x.beginPath(); x.moveTo(px,py); x.lineTo(px+0.1,py+0.1); x.stroke(); e.preventDefault(); });
+    cv.addEventListener('pointermove',e=>{ if(!down) return; const [px,py]=pos(e); x.lineTo(px,py); x.stroke(); dirty=true; e.preventDefault(); });
+    const end=()=>{ if(!down) return; down=false; if(dirty) setSig(cv.dataset.key,cv.toDataURL('image/png')); };
+    cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end); cv.addEventListener('pointerleave',end);
+  });
+}
+function readSigFile(key,file){
+  if(!file) return; const cv=$('sg_'+key); if(!cv) return; const fr=new FileReader();
+  fr.onload=ev=>{ const img=new Image(); img.onload=()=>{ const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,cv.width,cv.height);
+      const sc=Math.min(cv.width/img.width,cv.height/img.height); const w=img.width*sc,h=img.height*sc; x.drawImage(img,(cv.width-w)/2,(cv.height-h)/2,w,h); setSig(key,cv.toDataURL('image/jpeg',0.8)); };
+    img.onerror=()=>toast('This file is not a picture.','error'); img.src=ev.target.result; };
+  fr.readAsDataURL(file);
+}
+document.addEventListener('input',e=>{
+  const f=e.target.dataset&&e.target.dataset.f, card=e.target.closest&&e.target.closest('.fcard'); if(!f||!card) return; const uid=card.dataset.uid;
+  if(f==='bulk_to'){
+    const r=parseBulk(e.target.value), el=fq(uid,'bulkinfo');
+    if(!e.target.value.trim()){ el.textContent=''; el.className='bulkinfo'; }
+    else if(r.error){ el.textContent=r.error; el.className='bulkinfo err'; }
+    else { el.textContent=`${r.pairs.length} slip${r.pairs.length===1?'':'s'} ready`; el.className='bulkinfo good'; }
+  }
+  if(f==='amount_from'||f==='amount_to') updateAmountKind(uid);
+  if(f==='emp') scheduleLookup(uid);
+});
+document.addEventListener('change',e=>{
+  if(e.target.classList.contains('ef-check')){ $(`ef_${e.target.dataset.uid}_${e.target.dataset.key}`).classList.toggle('on',e.target.checked); }
+  if(e.target.classList.contains('pfile')) readPic(e.target.dataset.key,e.target.files[0]);
+  if(e.target.classList.contains('sigfile')) readSigFile(e.target.dataset.key,e.target.files[0]);
+  if(e.target.dataset&&e.target.dataset.f==='emp'){ runLookup(e.target.closest('.fcard').dataset.uid); }
+});
+function readPic(key,file){
+  if(!file) return;
+  const fr=new FileReader();
+  fr.onload=ev=>{ const img=new Image(); img.onload=()=>{
+    const sc=Math.min(1,1000/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    setPic(key,c.toDataURL('image/jpeg',0.7));
+  }; img.onerror=()=>toast('This file is not a picture.','error'); img.src=ev.target.result; };
+  fr.readAsDataURL(file);
+}
+function setPic(key,data){
+  S.pics[key]=data||null;
+  const p=$('pp_'+key); if(!p) return;
+  p.src=data||''; p.style.display=data?'inline-block':'none';
+  $('pl_'+key).textContent=data?'Tap to change the picture':(/_picture$/.test(key)?'Tap to choose the picture':'Attach a picture (optional)');
+  $('pr_'+key).classList.toggle('hidden',!data);
+  const f=$('pf_'+key); if(f&&!data) f.value='';
+}
+/* look up a Box Zimedar by Emp Code: fills the name, contact and the Office Zimedar it reports to */
+const lookupTimers={}, lookupSeqs={};
+function scheduleLookup(uid){ clearTimeout(lookupTimers[uid]); lookupTimers[uid]=setTimeout(()=>runLookup(uid),450); }
+async function runLookup(uid){
+  clearTimeout(lookupTimers[uid]);
+  const card=$('fc_'+uid); if(!card) return;
+  const code=fv(uid,'emp'), box=fq(uid,'boxinfo'), seq=(lookupSeqs[uid]=(lookupSeqs[uid]||0)+1);
+  if(code.length<2){ box.classList.add('hidden'); return; }
+  try{
+    const r=await api('lookupBox',{empCode:code}); if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
+    box.classList.remove('hidden');
+    if(!r.found){ box.className='boxinfo none'; box.textContent='No Box Zimedar found with this Emp Code. Type the name below.'; card.dataset.autoName=''; card.dataset.boxPhone=''; return; }
+    box.className='boxinfo ok';
+    const nm=fq(uid,'name'); if(!nm.value.trim()||card.dataset.autoName==='1'){ nm.value=r.name; card.dataset.autoName='1'; }
+    card.dataset.boxPhone=r.phone||'';
+    const cp=fq(uid,'d_contactNo'); if(cp&&!cp.value&&r.phone) cp.value='+'+r.phone;
+    const of=$('fOffice'); let office='';
+    if(r.officeId && S.office.some(o=>o.id===r.officeId)){
+      if(!of.value||S.autoOffice){ of.value=r.officeId; S.autoOffice=true; office=`<b>${esc(r.officeName)}</b> (selected above)`; }
+      else if(of.value===r.officeId) office=`<b>${esc(r.officeName)}</b>`;
+      else office=`<b>${esc(r.officeName)}</b> &mdash; but this request is going to ${esc(of.selectedOptions[0].text.replace(/ \(.*/,''))}`;
+    } else office='<b>not set</b> &mdash; please choose the Office Zimedar above';
+    const mine=userDistricts(U()), common=r.districts.filter(d=>mine.includes(d));
+    if(mine.length>1 && common.length===1 && !$('fDistrict').value) $('fDistrict').value=common[0];
+    box.innerHTML=`${ic('check',14)} <b>Box Zimedar found:</b> ${esc(r.name)} &middot; Emp Code ${esc(r.empCode)} &middot; ${esc(r.districts.join(', ')||'-')}<br>Reports to Office Zimedar: ${office}`;
+  }catch(e){ if(e.auth) logout(e.message); }
+}
+function renderOfficeSelect(){
+  const sel=$('fOffice'); if(!sel) return; const cur=sel.value;
+  sel.innerHTML=`<option value="">Select Office Zimedar…</option>`+S.office.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})</option>`).join('');
+  if(S.office.some(o=>o.id===cur)) sel.value=cur;
+  $('fOfficeHint').textContent = (S.loaded && !S.office.length) ? 'No Office Zimedar account exists yet. Please ask the administrator.' : '';
+}
+$('fOffice').addEventListener('input',()=>{ S.autoOffice=false; });
+function clearForm(){
+  ['fOffice','fDistrict'].forEach(id=>$(id).value=''); buildFormCardsOnly();
+}
+function buildFormCardsOnly(){ $('formCards').innerHTML=''; S.forms=[]; S.pics={}; S.formSeq=0; S.autoOffice=false; addForm(); }
+function collectForms(){
+  const many=S.forms.length>1, out=[];
+  S.forms.forEach((uid,i)=>{
+    const tag=many?`Form ${i+1}: `:'';
+    try{
+      const f={editingForName:fv(uid,'name'),editingForEmpCode:fv(uid,'emp'),editingMonth:fv(uid,'month'),raseedBookNumber:fv(uid,'book'),receiptNumber:fv(uid,'receipt'),edits:[]};
+      if(!f.editingForName||!f.editingForEmpCode||!f.editingMonth||!f.raseedBookNumber||!f.receiptNumber) throw new Error('please fill in the Employee Code, Name, Month, Raseed Book and Receipt Number.');
+      let decrease=false;
+      document.querySelectorAll(`#fc_${uid} .ef-check:checked`).forEach(cb=>{
+        const k=cb.dataset.key, t=EDIT_TYPES.find(x=>x.key===k); let e; const pic=S.pics[`${uid}_${k}`];
+        if(t.input==='picture'){ if(!pic) throw new Error('Picture: please choose the picture.'); e={key:k,from:'',to:'Picture attached'}; }
+        else if(t.input==='bulk'){ const r=parseBulk(fv(uid,'bulk_to')); if(r.error) throw new Error('Bulk Editing: '+r.error); e={key:k,from:'',to:r.pairs.join('\n')}; }
+        else if(k==='amount'){
+          const from=fv(uid,'amount_from'), to=fv(uid,'amount_to');
+          if(isNaN(amountNum(from))) throw new Error('Amount: enter the previous amount as a number.');
+          if(isNaN(amountNum(to))) throw new Error('Amount: enter the new amount as a number.');
+          if(amountNum(from)===amountNum(to)) throw new Error('Amount: the new amount is the same as the previous amount.');
+          e={key:k,from:String(amountNum(from)),to:String(amountNum(to))};
+          if(amountKind(from,to)==='decrease') decrease=true;
+        } else {
+          const from=fv(uid,`${k}_from`), to=fv(uid,`${k}_to`);
+          if(!to) throw new Error(`${EDIT_LABEL[k]}: please enter the correct / new value.`);
+          e={key:k,from,to};
+        }
+        if(pic) e.pic=pic; f.edits.push(e);
+      });
+      if(!f.edits.length) throw new Error('tick at least one item that needs editing.');
+      if(decrease){
+        const g=n=>fv(uid,'d_'+n), d={contactNo:g('contactNo'),formDate:g('formDate'),divisionZimedar:g('divisionZimedar'),receiptDate:g('receiptDate'),boxCode:g('boxCode'),reason:g('reason'),
+          donorVerified:g('donorVerified'),donorRemarks:g('donorRemarks'),donorCopyAttached:g('donorCopyAttached'),zimedarRemarks:g('zimedarRemarks'),zimedarName:g('zimedarName'),
+          boxSign:S.pics[`${uid}_boxSign`]||'',zimedarSign:S.pics[`${uid}_zimedarSign`]||''};
+        const need=[['contactNo','Contact No of Box Zimedar'],['formDate','Date'],['divisionZimedar','Division Zimedar name'],['receiptDate','Receipt Date'],['boxCode','Box Code'],['reason','Reason for editing'],['boxSign','Box Zimedar sign'],
+          ['donorVerified','Donor verification (Yes / No)'],['donorCopyAttached','Attached donor copy (Yes / No)'],['zimedarRemarks','District / Division Zimedar remarks'],['zimedarName','District / Division Zimedar name'],['zimedarSign','District / Division Zimedar sign']];
+        for(const [k,l] of need) if(!d[k]) throw new Error(`Raseed Amount Editing Form: ${l} is required.`);
+        if(d.donorCopyAttached==='Yes' && !S.pics[`${uid}_amount`]) throw new Error('Raseed Amount Editing Form: you said the donor copy is attached. Please attach its picture in the Amount item.');
+        f.decrease=d;
+      }
+      out.push(f);
+    }catch(e){ if(tag&&!/^Form /.test(e.message)) e.message=tag+e.message; throw e; }
+  });
+  return out;
+}
+$('fSubmit').addEventListener('click',async()=>{
+  const btn=$('fSubmit');
+  try{
+    const rec={assignedToId:$('fOffice').value};
+    const ds=userDistricts(U()); rec.district = ds.length>1 ? $('fDistrict').value : ds[0];
+    if(!rec.district) throw new Error('Please choose the district of this request.');
+    if(!rec.assignedToId) throw new Error('Please choose the Office Zimedar.');
+    rec.forms=collectForms();
+    btn.disabled=true; btn.textContent='Sending…';
+    const r=await api('submit',{record:rec});
+    toast(`Request ${r.id} sent`,'success'); clearForm(); await refresh(true); showTab('my');
+    offerWhatsApp(r.wa,`Request ${r.id} has been sent`);
+  }catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
+  finally{ btn.disabled=false; btn.innerHTML=ic('send')+' Send request'; }
+});
+
+/* one-tap WhatsApp: the server returns who to tell and the message; the person only taps Send */
+function offerWhatsApp(wa,title){
+  if(!wa) return;
+  if(wa.auto){ toast(`${title}. WhatsApp message sent to ${wa.name}.`,'success'); return; }
+  const link='https://wa.me/'+encodeURIComponent(wa.to)+'?text='+encodeURIComponent(wa.text);
+  openDlg({title:'Tell '+wa.name+' on WhatsApp',
+    body:`<p style="margin:0">${esc(title)}. Send a WhatsApp message so <b>${esc(wa.name)}</b> sees it right away.</p><div class="wa-preview">${esc(wa.text)}</div>
+      <a class="btn btn-wa btn-block" href="${esc(link)}" target="_blank" rel="noopener" data-act="wa-open">${ic('wa',18)} Open WhatsApp</a>`,
+    buttons:[{label:'Not now'}]});
+}
+
+/* ================================================================
+   FIELD: my requests
+   ================================================================ */
+['myStatus','mySearch'].forEach(id=>$(id).addEventListener('input',renderMy));
+function renderMy(){
+  if(!S.loaded){ $('myList').innerHTML=loadingHtml; return; }
+  const unread=new Set(unreadIds());
+  if(S.tab==='my') unread.forEach(id=>S.newMarks.add(id));
+  const st=$('myStatus').value, q=$('mySearch').value.trim();
+  const items=S.requests.filter(r=>(!st||r.status===st)&&matches(r,q)).sort((a,b)=>new Date(b.lastActionAt)-new Date(a.lastActionAt));
+  $('myList').innerHTML = items.length ? items.map(r=>{
+    const isNew=S.newMarks.has(r.id);
+    return `<div class="rc ${r.status}">
+      <div class="top"><div><div class="idl">${esc(r.id)} &middot; Sent ${fmtDT(r.createdAt)}${isNew?'<span class="newtag">NEW REPLY</span>':''}</div>
+        <h3>${whoLine(r)}</h3>
+        <div class="meta">Assigned to <b>${esc(r.assignedToName)}</b>${r.withDrm?` <span class="muted">(via ${esc(r.officeName)})</span>`:''} &middot; Receipt ${esc(r.receiptNumber)} &middot; ${esc(fmtMonthKey(r.editingMonth))}</div></div>${pill(r.status)}</div>
+      ${formsMini(r)}
+      ${replyBox(r)}
+      <div class="row" style="margin-top:10px"><button class="btn ${r.status==='returned'?'btn-primary':'btn-ghost'} btn-sm" data-act="open" data-id="${esc(r.id)}">${r.status==='returned'?'Reply to Office':'View details &amp; history'}</button></div>
+    </div>`;
+  }).join('') : `<div class="card">${emptyState(S.requests.length?'No requests match your filters.':'You have not sent any editing requests yet.')}</div>`;
+  if(S.tab==='my' && unread.size){ const seen=seenMap(); S.requests.forEach(r=>{ if(unread.has(r.id)) seen[r.id]=r.processedAt; }); store.set(seenKey(),JSON.stringify(seen)); updateBadges(); }
+}
+function replyBox(r){
+  if(r.status==='pending') return r.resubmitCount && r.replyText ? `<div class="reply returned"><small>Earlier reply (before you sent it again)</small>${esc(r.replyText)}</div>` : '';
+  return `<div class="reply ${r.status}"><small>Reply from ${esc(r.processedByName)} &middot; ${fmtDT(r.processedAt)}</small>${esc(r.replyText)}</div>`;
+}
+
+/* ================================================================
+   OFFICE: inbox
+   ================================================================ */
+['inDistrict','inSearch'].forEach(id=>$(id).addEventListener('input',renderInbox));
+function renderInbox(){
+  if(!S.loaded){ $('inList').innerHTML=loadingHtml; return; }
+  const d=$('inDistrict').value, q=$('inSearch').value.trim();
+  const items=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===U().id&&(!d||r.district===d)&&matches(r,q)).sort((a,b)=>new Date(a.lastSubmittedAt)-new Date(b.lastSubmittedAt));
+  $('inList').innerHTML = items.length ? items.map(r=>{
+    const w=waitHours(r), late=w>=48;
+    return `<div class="rc pending">
+      <div class="top"><div><div class="idl">${esc(r.id)} &middot; Received ${fmtDT(r.lastSubmittedAt)}${r.resubmitCount?` &middot; <b>sent again (${r.resubmitCount})</b>`:''}</div>
+        <h3>${whoLine(r)}</h3>
+        <div class="meta">${esc(r.district)} &middot; From <b>${esc(r.senderName)}</b>${roleTag(r.sentByRole)} &middot; Receipt ${esc(r.receiptNumber)} &middot; Book ${esc(r.raseedBookNumber)} &middot; ${esc(fmtMonthKey(r.editingMonth))}${r.withDrm?` &middot; <b>forwarded by ${esc(r.officeName)}</b>`:''}</div></div>
+        <span class="wait ${late?'late':''}">${ic('clock',13)} Waiting ${fmtDur(w)}</span></div>
+      ${formsMini(r)}
+      ${replyBox(r)}
+      <div class="row" style="margin-top:10px"><button class="btn btn-primary btn-sm" data-act="open" data-id="${esc(r.id)}">Open &amp; reply</button></div>
+    </div>`;
+  }).join('') : `<div class="card">${emptyState('You are all caught up. No requests are waiting for your reply.')}</div>`;
+}
+
+/* ================================================================
+   RECORDS (office + admin)
+   ================================================================ */
+['rMonth','rDistrict','rStatus','rOffice','rRole','rSearch'].forEach(id=>$(id).addEventListener('input',renderRecords));
+function recordsFiltered(){
+  const m=$('rMonth').value,d=$('rDistrict').value,st=$('rStatus').value,o=$('rOffice').value,ro=$('rRole').value,q=$('rSearch').value.trim();
+  return S.requests.filter(r=>(!m||monthKeyOf(r.createdAt)===m)&&(!d||r.district===d)&&(!st||r.status===st)&&(!o||r.officeId===o)&&(!ro||r.sentByRole===ro)&&matches(r,q))
+    .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+}
+function fillSelectKeep(el,html){ const cur=el.value; el.innerHTML=html; if([...el.options].some(o=>o.value===cur)) el.value=cur; }
+function monthOptions(basis){
+  const ks=[...new Set(S.requests.map(r=>basis==='editing'?r.editingMonth:monthKeyOf(r.createdAt)).filter(Boolean))].sort().reverse();
+  return `<option value="">All months</option>`+ks.map(k=>`<option value="${k}">${esc(fmtMonthKey(k))}</option>`).join('');
+}
+function renderRecords(){
+  fillSelectKeep($('rMonth'),monthOptions('received'));
+  const offices=(S.users||[]).filter(u=>u.role==='Office Zimedar');
+  fillSelectKeep($('rOffice'),`<option value="">All</option>`+offices.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join(''));
+  if(!S.loaded){ $('rBody').innerHTML=`<tr><td colspan="11"><div class="loading">Loading…</div></td></tr>`; return; }
+  const items=recordsFiltered();
+  $('rCount').textContent=`${items.length} record${items.length===1?'':'s'}`;
+  $('rBody').innerHTML = items.length ? items.map(r=>`<tr class="click" data-act="open" data-id="${esc(r.id)}">
+    <td class="num">${esc(r.id)}</td><td>${fmtDT(r.createdAt)}</td><td>${esc(r.district)}</td>
+    <td>${esc(r.senderName)}${roleTag(r.sentByRole)}<div class="muted">${esc(r.senderEmpCode||'')}</div></td>
+    <td>${esc(r.editingForName)}<div class="muted">${esc(r.editingForEmpCode)}${r.formCount>1?` &middot; +${r.formCount-1} more form${r.formCount>2?'s':''}`:''}</div></td>
+    <td>${esc(fmtMonthKey(r.editingMonth))}<div class="muted">Book ${esc(r.raseedBookNumber)} &middot; Receipt ${esc(r.receiptNumber)}</div></td>
+    <td>${esc(r.editTypes)}</td><td>${esc(r.assignedToName)}${r.withDrm?`<div class="muted">sent on by ${esc(r.officeName)}</div>`:''}${!r.withDrm&&r.drmName?`<div class="muted">DRM: ${esc(r.drmName)}</div>`:''}</td><td>${pill(r.status)}</td>
+    <td>${r.processedAt&&r.status!=='pending'?fmtDT(r.processedAt)+'<div class="muted">'+esc(r.processedByName)+'</div>':'-'}</td>
+    <td class="num">${r.status==='pending'?`<span class="wait ${waitHours(r)>=48?'late':''}">${fmtDur(waitHours(r))}</span>`:fmtDur(respHours(r))}</td></tr>`).join('')
+    : `<tr><td colspan="11">${emptyState('No records match your filters.')}</td></tr>`;
+}
+function exportCsv(){
+  const items=recordsFiltered(); if(!items.length){ toast('There are no records to export.','error'); return; }
+  const head=['ID','Received','District','Sender Role','Sender','Sender Emp Code','Editing For','Emp Code','Editing Month','Raseed Book','Receipt No','Edit Types','Edit Details','Assigned To','Assigned Emp Code','Status','Reply','Replied By','Replied At','Response Hours','Times Sent Again'];
+  const rows=items.map(r=>[r.id,fmtDT(r.createdAt),r.district,r.sentByRole,r.senderName,r.senderEmpCode,r.forms.map(f=>f.editingForName).join('; '),r.forms.map(f=>f.editingForEmpCode).join('; '),r.forms.map(f=>f.editingMonth).join('; '),r.forms.map(f=>f.raseedBookNumber).join('; '),r.forms.map(f=>f.receiptNumber).join('; '),r.editTypes,
+    r.forms.map((f,i)=>(r.forms.length>1?`[Form ${i+1}] `:'')+f.edits.map(e=>`${EDIT_LABEL[e.key]}: ${e.from?e.from+' -> ':''}${e.key==='bulk'?String(e.to).split('\n').join(', '):e.to}`).join(' | ')).join(' || '),r.assignedToName+(r.withDrm?' (via '+r.officeName+')':''),r.assignedToEmpCode,STATUS_LABEL[r.status],r.replyText,r.processedByName,r.processedAt?fmtDT(r.processedAt):'',
+    respHours(r)==null?'':respHours(r).toFixed(2),r.resubmitCount]);
+  const csv=[head,...rows].map(row=>row.map(v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='editing-records-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); toast('CSV exported','success');
+}
+
+/* ================================================================
+   DASHBOARD
+   ================================================================ */
+['dBasis','dMonth','dDistrict','dLate'].forEach(id=>$(id).addEventListener('input',()=>{ if(id==='dBasis') $('dMonth').value=''; renderDashboard(); }));
+function bars(entries){
+  const max=Math.max(1,...entries.map(e=>e[1]));
+  return entries.map(([n,v])=>`<div class="bar"><div class="n">${esc(n)}</div><div class="t"><i style="width:${Math.round(v/max*100)}%"></i></div><div class="v">${v}</div></div>`).join('');
+}
+function group(rows,keyFn){ const g={}; rows.forEach(r=>{ const k=keyFn(r); (g[k]=g[k]||[]).push(r); }); return g; }
+function summary(rows){
+  const done=rows.filter(r=>r.status!=='pending'), times=done.map(respHours).filter(x=>x!=null);
+  return {total:rows.length,completed:rows.filter(r=>r.status==='completed').length,returned:rows.filter(r=>r.status==='returned').length,pending:rows.filter(r=>r.status==='pending').length,
+    avg:avg(times),fast:times.length?Math.min(...times):null,slow:times.length?Math.max(...times):null};
+}
+function renderDashboard(){
+  const basis=$('dBasis').value; fillSelectKeep($('dMonth'),monthOptions(basis));
+  const m=$('dMonth').value, dist=$('dDistrict').value, lateH=Number($('dLate').value)||48;
+  const keyOf=r=>basis==='editing'?r.editingMonth:monthKeyOf(r.createdAt);
+  const data=S.requests.filter(r=>(!m||keyOf(r)===m)&&(!dist||r.district===dist));
+  const s=summary(data);
+  $('dStats').innerHTML=[
+    ['',s.total,'Total requests'],['p',s.pending,'Pending'],['c',s.completed,'Completed'],['r',s.returned,'Returned'],
+    ['',fmtDur(s.avg),'Average response time'],['c',fmtDur(s.fast),'Fastest response'],['r',fmtDur(s.slow),'Slowest response'],
+    ['p',data.filter(r=>r.status==='pending'&&waitHours(r)>=lateH).length,`Late pending (${lateH}h+)`]
+  ].map(([c,v,l])=>`<div class="stat ${c}"><b>${v}</b><span>${l}</span></div>`).join('');
+
+  $('dDistrictBars').innerHTML=bars(DISTRICTS.map(d=>[d,data.filter(r=>r.district===d).length]));
+  $('dTypeBars').innerHTML=bars(Object.keys(EDIT_LABEL).map(k=>[EDIT_LABEL[k],data.filter(r=>r.edits.some(e=>e.key===k)).length]).sort((a,b)=>b[1]-a[1]));
+
+  const none=cols=>`<tr><td colspan="${cols}">${emptyState('No data for this selection.')}</td></tr>`;
+  const byMonth=group(data,keyOf), mk=Object.keys(byMonth).filter(Boolean).sort().reverse();
+  $('dMonthBody').innerHTML=mk.length?mk.map(k=>{const x=summary(byMonth[k]);return `<tr><td>${esc(fmtMonthKey(k))}</td><td class="num">${x.total}</td><td class="num">${x.completed}</td><td class="num">${x.returned}</td><td class="num">${x.pending}</td><td>${fmtDur(x.avg)}</td></tr>`;}).join(''):none(6);
+
+  const bySender=group(data,r=>[r.district,r.sentByRole,r.senderName].join('|')), sk=Object.keys(bySender).sort((a,b)=>bySender[b].length-bySender[a].length);
+  $('dSenderBody').innerHTML=sk.length?sk.map(k=>{const [d,ro,n]=k.split('|'),x=summary(bySender[k]);return `<tr><td>${esc(d)}</td><td>${roleTag(ro)}</td><td>${esc(n)}</td><td class="num">${x.total}</td><td class="num">${x.completed}</td><td class="num">${x.returned}</td><td class="num">${x.pending}</td><td>${fmtDur(x.avg)}</td></tr>`;}).join(''):none(8);
+
+  if(U().kind==='admin'){
+    const byOff=group(data,r=>r.officeName||r.assignedToName), names=[...new Set([...(S.users||[]).filter(o=>o.role==='Office Zimedar'&&o.active).map(o=>o.name),...Object.keys(byOff)])];
+    $('dOfficeBody').innerHTML=names.length?names.map(n=>{const x=summary(byOff[n]||[]);return `<tr><td>${esc(n)}</td><td class="num">${x.total}</td><td class="num">${x.completed}</td><td class="num">${x.returned}</td><td class="num">${x.pending}</td><td>${fmtDur(x.avg)}</td><td>${fmtDur(x.fast)}</td><td>${fmtDur(x.slow)}</td></tr>`;}).join(''):none(8);
+  }
+  const late=[];
+  data.forEach(r=>{ if(r.status==='pending'){ const w=waitHours(r); if(w>=lateH) late.push({r,h:w,kind:'wait'}); } else { const h=respHours(r); if(h!=null&&h>=lateH) late.push({r,h,kind:'took'}); } });
+  late.sort((a,b)=>b.h-a.h);
+  $('dLateSub').textContent=`Requests that took ${lateH} hours or more, or are still waiting after that long. Longest first.`;
+  $('dLateBody').innerHTML=late.length?late.slice(0,100).map(({r,h,kind})=>`<tr class="click" data-act="open" data-id="${esc(r.id)}"><td class="num">${esc(r.id)}</td><td>${esc(r.district)}</td><td>${esc(r.senderName)}${roleTag(r.sentByRole)}</td><td>${esc(r.editingForName)}</td><td>${esc(r.assignedToName)}</td><td>${pill(r.status)}</td><td><span class="wait late">${kind==='wait'?'Still waiting: ':'Took '}${fmtDur(h)}</span></td></tr>`).join(''):`<tr><td colspan="7">${emptyState('No late editing in this selection.')}</td></tr>`;
+}
+
+/* ================================================================
+   DIALOGS
+   ================================================================ */
+function openDlg({title,body,buttons=[],locked=false}){
+  $('dTitle').textContent=title; $('dBody').innerHTML=body; $('dErr').classList.add('hidden');
+  S.dlgLocked=locked; $('dClose').classList.toggle('hidden',locked);
+  const foot=$('dFoot'); foot.innerHTML='';
+  buttons.forEach(b=>{
+    const el=document.createElement('button'); el.type='button'; el.className='btn '+(b.cls||'btn-ghost'); el.innerHTML=b.label;
+    el.addEventListener('click',async()=>{
+      if(!b.onClick){ closeDlg(); return; }
+      const orig=el.innerHTML; el.disabled=true; $('dErr').classList.add('hidden');
+      try{ const r=await b.onClick(); if(r!==false) closeDlg(true); }
+      catch(e){ if(e.auth){ closeDlg(true); logout(e.message); return; } dlgError(e.message); }
+      finally{ el.disabled=false; el.innerHTML=orig; }
+    });
+    foot.appendChild(el);
+  });
+  $('dlg').classList.add('show');
+  const f=$('dBody').querySelector('input,select,textarea'); if(f) setTimeout(()=>f.focus(),40);
+}
+function dlgError(m){ const e=$('dErr'); e.textContent=m; e.classList.remove('hidden'); }
+function closeDlg(force){ if(S.dlgLocked && !force) return; S.dlgLocked=false; $('dlg').classList.remove('show'); }
+function pwField(id,label,auto,hint){ return `<div class="field"><label for="${id}">${label}</label><div class="pw"><input id="${id}" type="password" autocomplete="${auto}"><button type="button" data-act="toggle-pw" data-target="${id}" aria-label="Show password">${ic('eye',18)}</button></div>${hint?`<span class="hint">${hint}</span>`:''}</div>`; }
+
+function openPwDialog(forced){
+  openDlg({
+    title: forced?'Set your own password':'Change password', locked:forced,
+    body:(forced?`<div class="alert warn" style="margin-bottom:13px">You are signed in with a temporary password. Please choose a new password to continue.</div>`:'')+
+      pwField('pwCur','Current password','current-password')+pwField('pwNew','New password','new-password','At least 6 characters. It must not be the same as your Emp Code.')+pwField('pwNew2','Confirm new password','new-password'),
+    buttons:[
+      ...(forced?[{label:'Sign out',cls:'btn-ghost',onClick:async()=>{ logout(); return false; }}]:[{label:'Cancel'}]),
+      {label:'Save password',cls:'btn-primary',onClick:async()=>{
+        const cur=$('pwCur').value, n1=$('pwNew').value, n2=$('pwNew2').value;
+        if(!cur||!n1) throw new Error('Please fill in all the fields.');
+        if(n1!==n2) throw new Error('The new passwords do not match.');
+        const d=await api('changePassword',{current:cur,next:n1});
+        S.session={token:d.token,user:d.user}; saveSession(); renderProfile(); toast('Your password has been changed','success');
+        if(forced) start();
+      }}
+    ]
+  });
+}
+
+/* ================================================================
+   ADMIN: users
+   ================================================================ */
+['ufRole','ufStatus','ufSearch'].forEach(id=>$(id).addEventListener('input',renderUsers));
+$('uRole').addEventListener('input',()=>{ $('uDistWrap').classList.toggle('hidden',$('uRole').value==='Office Zimedar'||$('uRole').value===DRM); $('uOfficeWrap').classList.toggle('hidden',$('uRole').value!=='Box Zimedar'); });
+function fillOfficeSelect(id,selected){
+  const el=$(id); if(!el) return; const cur=selected!==undefined?selected:el.value;
+  el.innerHTML=`<option value="">Select Office Zimedar…</option>`+(S.users||[]).filter(x=>x.role==='Office Zimedar'&&x.active).map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})</option>`).join('');
+  if([...el.options].some(o=>o.value===cur)) el.value=cur;
+}
+function userStats(u){
+  if(u.role===DRM){ const m=S.requests.filter(r=>r.drmId===u.id); return `${m.length} received${m.filter(r=>r.status==='pending'&&r.assignedToId===u.id).length?` · <span class="wait">${m.filter(r=>r.status==='pending'&&r.assignedToId===u.id).length} pending</span>`:''}`; }
+  if(u.role==='Office Zimedar'){ const m=S.requests.filter(r=>r.assignedToId===u.id); return `${m.length} received${m.filter(r=>r.status==='pending').length?` · <span class="wait">${m.filter(r=>r.status==='pending').length} pending</span>`:''}`; }
+  const m=S.requests.filter(r=>r.senderId?r.senderId===u.id:(r.senderName===u.name&&r.district===u.district)); return `${m.length} sent`;
+}
+function renderUsers(){
+  if(!S.loaded){ $('uBody').innerHTML=`<tr><td colspan="9"><div class="loading">Loading…</div></td></tr>`; return; }
+  const role=$('ufRole').value, st=$('ufStatus').value, q=$('ufSearch').value.trim().toLowerCase();
+  const items=(S.users||[]).filter(u=>(!role||u.role===role)&&(!st||(st==='active')===u.active)&&(!q||(u.name+' '+u.empCode).toLowerCase().includes(q)));
+  fillOfficeSelect('uOffice');
+  $('uCount').textContent=`${items.length} of ${(S.users||[]).length} account${(S.users||[]).length===1?'':'s'}`;
+  $('uBody').innerHTML=items.length?items.map(u=>`<tr>
+    <td><b>${esc(u.name)}</b></td><td>${esc(u.empCode)}</td><td>${roleTag(u.role)}${u.role==='Box Zimedar'?`<div class="muted">Reports to ${esc(u.officeName||'— not set —')}</div>`:''}</td><td>${esc(u.district||'—')}</td>
+    <td>${u.phone?`<span class="wa-ok">+${esc(u.phone)}</span>${u.waKey?`<div class="muted">Automatic · <button class="linkbtn" data-act="user-wa" data-id="${esc(u.id)}">Send test</button></div>`:'<div class="muted">One-tap button</div>'}`:'<span class="wa-no">Not added</span>'}</td><td>${userStats(u)}</td>
+    <td>${u.lastLoginAt?fmtDT(u.lastLoginAt):'<span class="muted">Never</span>'}${u.mustChange?'<div class="muted">Temporary password</div>':''}</td>
+    <td>${u.active?'<span class="pill ok">Active</span>':'<span class="pill off">Inactive</span>'}</td>
+    <td><div class="row" style="flex-wrap:nowrap">
+      <button class="btn btn-ghost btn-sm" data-act="user-edit" data-id="${esc(u.id)}">Edit</button>
+      <button class="btn btn-ghost btn-sm" data-act="user-reset" data-id="${esc(u.id)}">Reset password</button>
+      <button class="btn btn-ghost btn-sm" data-act="user-toggle" data-id="${esc(u.id)}">${u.active?'Deactivate':'Activate'}</button></div></td></tr>`).join('')
+    : `<tr><td colspan="9">${emptyState((S.users||[]).length?'No accounts match your filters.':'No accounts yet. Create the first one above.')}</td></tr>`;
+}
+function credsHtml(u,pw){
+  return `<div class="creds"><div><span>Name</span><b>${esc(u.name)}</b></div><div><span>Role</span><b>${esc(u.role)}${u.district?' · '+esc(u.district):''}</b></div><div><span>Emp Code</span><b>${esc(u.empCode)}</b></div><div><span>Temporary password</span><b>${esc(pw)}</b></div></div>
+    <p class="hint" style="margin:8px 0 0">Share these details with the person privately. They will be asked to choose a new password when they first sign in. For security this password is shown only now.</p>`;
+}
+function showCreds(title,u,pw){
+  const text=`Editing Portal login\nName: ${u.name}\nRole: ${u.role}${u.district?' ('+u.district+')':''}\nEmp Code: ${u.empCode}\nTemporary password: ${pw}\nYou will be asked to set a new password when you first sign in.`;
+  openDlg({title,body:credsHtml(u,pw),buttons:[
+    {label:ic('copy',14)+' Copy details',cls:'btn-ghost',onClick:async()=>{ try{ await navigator.clipboard.writeText(text); }catch(e){ const t=document.createElement('textarea'); t.value=text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); } toast('Login details copied','success'); return false; }},
+    {label:'Done',cls:'btn-primary'}]});
+}
+$('uCreate').addEventListener('click',async()=>{
+  const btn=$('uCreate'), err=$('uErr'); err.classList.add('hidden');
+  const rec={name:$('uName').value.trim(),empCode:$('uEmp').value.trim(),role:$('uRole').value,districts:pickedDistricts('uDist'),phone:$('uPhone').value.trim(),waKey:$('uKey').value.trim(),officeId:$('uOffice').value,password:$('uPass').value};
+  if(!rec.name||!rec.empCode||!rec.role||!rec.password){ err.textContent='Please fill in the name, Emp Code, role and a temporary password.'; err.classList.remove('hidden'); return; }
+  if(rec.role==='Box Zimedar'&&!rec.officeId){ err.textContent='Please choose the Office Zimedar this Box Zimedar reports to.'; err.classList.remove('hidden'); return; }
+  if(rec.role!=='Office Zimedar'&&rec.role!==DRM&&!rec.districts.length){ err.textContent='Please tick at least one district for this role.'; err.classList.remove('hidden'); return; }
+  btn.disabled=true;
+  try{
+    await api('createUser',rec);
+    showCreds('Account created',{name:rec.name,empCode:rec.empCode,role:rec.role,district:(rec.role==='Office Zimedar'||rec.role===DRM)?'':rec.districts.join(', ')},rec.password);
+    ['uName','uEmp'].forEach(i=>$(i).value=''); $('uRole').value=''; $('uPhone').value=''; $('uKey').value=''; $('uOffice').value=''; $('uOfficeWrap').classList.add('hidden'); $('uDistricts').innerHTML=distChips('uDist'); $('uDistWrap').classList.remove('hidden'); $('uPass').value=genPassword();
+    refresh(true);
+  }catch(e){ if(e.auth){ logout(e.message); return; } err.textContent=e.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; }
+});
+function editUserDialog(u){
+  const isOffice=u.role==='Office Zimedar'||u.role===DRM;
+  openDlg({title:'Edit '+u.name,
+    body:`<div class="field"><label for="euName">Full name</label><input id="euName" value="${esc(u.name)}"></div>
+      <div class="field"><label>Emp Code</label><input value="${esc(u.empCode)}" disabled><span class="hint">The Emp Code cannot be changed. Create a new account if it is wrong.</span></div>
+      <div class="field"><label for="euRole">Role</label><select id="euRole" ${isOffice?'disabled':''}>${(isOffice?[u.role]:FIELD_ROLES).map(r=>`<option ${r===u.role?'selected':''}>${r}</option>`).join('')}</select>${isOffice?'<span class="hint">This account cannot be changed to another role.</span>':''}</div>
+      ${isOffice?'':`<div class="field"><label>Districts <span class="muted">tick one or more</span></label><div class="chips">${distChips('euDist',userDistricts(u))}</div></div>`}
+      <div class="field ${u.role==='Box Zimedar'?'':'hidden'}" id="euOfficeWrap"><label for="euOffice">Reports to (Office Zimedar)</label><select id="euOffice"></select></div>
+      <div class="field"><label for="euPhone">WhatsApp number</label><input id="euPhone" type="tel" value="${esc(u.phone||'')}" placeholder="e.g. 0300 1234567"><span class="hint">Leave empty if this person has no WhatsApp.</span></div>
+      <div class="field"><label for="euKey">CallMeBot key <span class="muted">optional</span></label><input id="euKey" value="${esc(u.waKey||'')}" placeholder="only for automatic messages"><span class="hint">Leave empty to use the one-tap WhatsApp button.</span></div>
+      <p class="hint">Requests already sent keep the role and district they were sent with.</p>`,
+    buttons:[{label:'Cancel'},{label:'Save changes',cls:'btn-primary',onClick:async()=>{
+      const patch={id:u.id,name:$('euName').value.trim()}; if(!isOffice){ patch.role=$('euRole').value; patch.districts=pickedDistricts('euDist'); if(!patch.districts.length) throw new Error('Please tick at least one district.'); }
+      patch.phone=$('euPhone').value.trim(); patch.waKey=$('euKey').value.trim();
+      if((isOffice?false:$('euRole').value==='Box Zimedar')){ patch.officeId=$('euOffice').value; if(!patch.officeId) throw new Error('Please choose the Office Zimedar this Box Zimedar reports to.'); }
+      await api('updateUser',patch); toast('Account updated','success'); refresh(true); }}]});
+  fillOfficeSelect('euOffice',u.officeId||'');
+  const er=$('euRole'); if(er&&!isOffice) er.addEventListener('input',()=>$('euOfficeWrap').classList.toggle('hidden',er.value!=='Box Zimedar'));
+}
+function resetUserDialog(u){
+  const pw=genPassword();
+  openDlg({title:'Reset password',
+    body:`<p style="margin:0 0 12px">Set a new temporary password for <b>${esc(u.name)}</b> (${esc(u.empCode)}). They will be signed out everywhere and asked to choose their own password.</p>
+      <div class="field"><label for="rpPass">New temporary password</label><div class="row" style="flex-wrap:nowrap;gap:8px"><input id="rpPass" value="${esc(pw)}" autocomplete="off" style="flex:1;min-width:0;border:1px solid #D5D2C9;border-radius:8px;padding:9px 11px;font-family:Consolas,monospace;font-size:14px"><button class="btn btn-ghost" type="button" data-act="gen-pw" data-target="rpPass">Generate</button></div></div>`,
+    buttons:[{label:'Cancel'},{label:'Reset password',cls:'btn-primary',onClick:async()=>{
+      const p=$('rpPass').value; await api('resetPassword',{id:u.id,password:p}); refresh(true);
+      setTimeout(()=>showCreds('Password reset',u,p),50); }}]});
+}
+function toggleUserDialog(u){
+  const to=!u.active;
+  openDlg({title:(to?'Activate ':'Deactivate ')+u.name,
+    body:to?`<p style="margin:0">${esc(u.name)} will be able to sign in again.</p>`:`<p style="margin:0"><b>${esc(u.name)}</b> will no longer be able to sign in, and any open session will end. Their records are kept.${u.role==='Office Zimedar'?' They will also disappear from the "Send to" list.':''}</p>`,
+    buttons:[{label:'Cancel'},{label:to?'Activate':'Deactivate',cls:to?'btn-primary':'btn-danger',onClick:async()=>{ await api('updateUser',{id:u.id,active:to}); toast(to?'Account activated':'Account deactivated','success'); refresh(true); }}]});
+}
+
+/* ================================================================
+   ADMIN: delete old pictures (pictures only - records stay)
+   ================================================================ */
+function stRange(){
+  const f=$('stFrom').value, t=$('stTo').value;
+  if(!f||!t) throw new Error('Please choose both dates.');
+  if(f>t) throw new Error('The start date must not be after the end date.');
+  return {fromISO:new Date(f+'T00:00:00').toISOString(), toISO:new Date(t+'T23:59:59.999').toISOString(), f, t};
+}
+function stReset(){ const r=$('stResult'); r.classList.add('hidden'); $('stDelete').disabled=true; S.stCount=0; }
+['stFrom','stTo'].forEach(id=>$(id).addEventListener('input',stReset));
+function renderStorage(){ $('stCheck').innerHTML=ic('eye')+' Check how many'; $('stDelete').innerHTML=ic('trash')+' Delete these pictures'; }
+async function stCheck(){
+  const btn=$('stCheck'); btn.disabled=true;
+  try{
+    const rg=stRange(), r=await api('countPictures',{fromISO:rg.fromISO,toISO:rg.toISO}), box=$('stResult');
+    box.classList.remove('hidden'); S.stCount=r.pictures; S.stRange=rg;
+    box.innerHTML = r.pictures ? `<b>${r.pictures}</b> picture${r.pictures===1?'':'s'} in <b>${r.requests}</b> request${r.requests===1?'':'s'} received between ${esc(rg.f)} and ${esc(rg.t)}.` : 'There are no pictures to delete in this period.';
+    $('stDelete').disabled=!r.pictures;
+  }catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
+  finally{ btn.disabled=false; }
+}
+function stDelete(){
+  const rg=S.stRange, n=S.stCount; if(!rg||!n) return;
+  openDlg({title:'Delete pictures?',
+    body:`<p style="margin:0 0 8px">You are about to delete <b>${n}</b> picture${n===1?'':'s'} of requests received between <b>${esc(rg.f)}</b> and <b>${esc(rg.t)}</b>.</p><p class="hint" style="margin:0">Only the pictures are removed. The requests, details, replies and history stay.</p>`,
+    buttons:[{label:'Cancel'},{label:ic('trash')+' Delete pictures',cls:'btn-danger',onClick:async()=>{
+      const r=await api('deletePictures',{fromISO:rg.fromISO,toISO:rg.toISO});
+      toast(`${r.pictures} picture${r.pictures===1?'':'s'} deleted`+(r.failed?` (${r.failed} could not be removed from Drive)`:''),'success');
+      const box=$('stResult'); box.classList.remove('hidden'); box.innerHTML=`Done. <b>${r.pictures}</b> picture${r.pictures===1?'':'s'} deleted from <b>${r.requests}</b> request${r.requests===1?'':'s'}.`+(r.failed?` ${r.failed} file(s) were already missing in Drive.`:''); $('stDelete').disabled=true; S.stCount=0; refresh(true); }}]});
+}
+
+/* ================================================================
+   REQUEST DETAIL
+   ================================================================ */
+function sheetHtml(f,r,i){
+  const d=f.decrease; if(!d) return '';
+  const u=x=>`<span class="fv">${esc(x)}</span>`;
+  const yn=v=>v==='Yes'?'<u>Yes</u> / No':'Yes / <u>No</u>';
+  const ur=x=>`<span class="ur" dir="auto">${esc(x)}</span>`;
+  const sig=url=>url?`<img class="rsig" src="${esc(url)}" data-sig="1" alt="Sign">`:'<div class="fw"></div>';
+  return `<div class="rsheet" id="rs_${esc(r.id)}_${i}">
+    <h1>Raseed Amount Editing Form</h1><h4>Fill By Box Zimedar</h4>
+    <div class="rbox">
+      <p><b>Contact No of Box Zimedar:</b>${u(d.contactNo)} <b>Date:</b>${u(d.formDate)}</p>
+      <p><b>Emp Code:</b>${u(f.editingForEmpCode)} <b>Name:</b>${u(f.editingForName)} <b>Division</b>${u(d.division)}</p>
+      <p><b>Division Zimmedar (Punjab District Zimmedar):</b>${u(d.divisionZimedar)}</p>
+      <p><b>Raseed Book No:</b>${u(f.raseedBookNumber)} <b>Receipt No:</b>${u(f.receiptNumber)} <b>Receipt Date:</b>${u(d.receiptDate)}</p>
+      <p><b>Box Code</b>${u(d.boxCode)} <b>Before Amount:</b>${u(d.beforeAmount)} <b>After Amount:</b>${u(d.afterAmount)}</p>
+      <p class="rh">Reason For Editing: Amount Change</p>
+      <div class="fw">${ur(d.reason)}</div>
+      <p><b>Box Zimedar Sign</b></p>${sig(d.boxSign)}
+    </div>
+    <h4>Fill By District/Division Zimedar</h4>
+    <div class="rbox">
+      <p class="rh">Doner Verification via Meetup / Call</p>
+      <p class="yn">Kia app nay Donor sy call ya Mulaqaat kr ka Tasdeeq kr li hai? ${yn(d.donorVerified)}</p>
+      <p><b class="rh">Donor Remarks:</b> ${ur(d.donorRemarks)}</p>
+      <p class="yn"><b>Attached Donor Copy with Form?</b> ${yn(d.donorCopyAttached)}</p>
+      <p class="rh">District/Division Zimedar Remarks:</p>
+      <div class="fw">${ur(d.zimedarRemarks)}</div>
+      <p><b>District/Division Zimedar Name:</b>${u(d.zimedarName)}</p>
+      <p><b>Sign</b></p>${sig(d.zimedarSign)}
+    </div>
+  </div>`;
+}
+function openDetail(id){
+  const r=S.requests.find(x=>x.id===id); if(!r) return;
+  S.openId=id; const kind=U().kind, me=U().id;
+  $('mTitle').innerHTML=`${esc(r.id)} &nbsp; ${pill(r.status)}`;
+  const kv=(k,v)=>`<div><div class="k">${k}</div><div class="v">${v||'-'}</div></div>`;
+  const picCell=e=>e.pic?`<img class="thumb" src="${esc(e.pic)}" alt="Attached picture" data-act="img" data-src="${esc(e.pic)}">`:(e.picDeleted?`<span class="muted">Picture deleted on ${esc(fmtDT(e.picDeleted).split(',')[0])}</span>`:'<span class="muted">-</span>');
+  const bulkT=txt=>`<table class="pairs"><thead><tr><th>Old slip</th><th></th><th>New slip</th></tr></thead><tbody>${String(txt).split('\n').map(l=>{ const [o,n]=l.split('='); return `<tr><td class="old">${esc(o)}</td><td class="arrow">&rarr;</td><td class="new">${esc(n)}</td></tr>`; }).join('')}</tbody></table>`;
+  const editsRows=f=>f.edits.map(e=> e.key==='bulk' ? `<tr><td><b>${esc(EDIT_LABEL[e.key])}</b><div class="muted">${String(e.to).split('\n').length} slips</div></td><td colspan="2">${bulkT(e.to)}</td><td>${picCell(e)}</td></tr>`
+      : e.key==='picture' ? `<tr><td><b>${esc(EDIT_LABEL[e.key])}</b></td><td>-</td><td>New picture</td><td>${picCell(e)}</td></tr>`
+      : `<tr><td><b>${esc(EDIT_LABEL[e.key])}</b>${e.key==='amount'&&amountKind(e.from,e.to)?`<div><span class="pill ${amountKind(e.from,e.to)==='increase'?'inc':'dec'}">${amountKind(e.from,e.to)==='increase'?'Increase':'Decrease'}</span></div>`:''}</td><td class="old">${esc(e.from)||'<span class="muted">-</span>'}</td><td class="new">${esc(e.to)}</td><td>${picCell(e)}</td></tr>`).join('');
+  const many=r.forms.length>1;
+  const formsT=r.forms.map((f,i)=>`<div class="fblock"><div class="fb-h">${many?`<span>Form ${i+1} of ${r.forms.length}</span>`:'<span>Editing details</span>'}<span>${esc(f.editingForName)} (${esc(f.editingForEmpCode)})</span><span class="muted">${esc(fmtMonthKey(f.editingMonth))} &middot; Book ${esc(f.raseedBookNumber)} &middot; Receipt ${esc(f.receiptNumber)}</span></div>
+    <div class="fb-b"><div class="tw" style="box-shadow:none"><table class="etable"><thead><tr><th>Item to edit</th><th>Current value</th><th>Requested value</th><th>Picture</th></tr></thead><tbody>${editsRows(f)}</tbody></table></div>
+    ${f.decrease?`<div class="sec" style="margin-top:16px">Raseed Amount Editing Form</div>${sheetHtml(f,r,i)}<div class="row" style="justify-content:center;margin-top:6px"><button class="btn btn-primary btn-sm" data-act="pdf" data-id="${esc(r.id)}" data-i="${i}">${ic('download',14)} Download PDF</button><button class="btn btn-ghost btn-sm" data-act="print-sheet" data-id="${esc(r.id)}" data-i="${i}">Print</button></div>`:''}</div></div>`).join('');
+  const extraT=(r.extraPics&&r.extraPics.length)?`<div class="sec" style="margin-top:18px">Extra pictures sent with the reply</div><div class="row" style="align-items:flex-start">${r.extraPics.map(x=>x.url?`<div><img class="thumb" src="${esc(x.url)}" alt="Extra picture" data-act="img" data-src="${esc(x.url)}"><div class="muted">${esc(x.by)} &middot; ${fmtDT(x.time)}</div></div>`:`<div class="muted">Picture deleted${x.deleted?' on '+esc(fmtDT(x.deleted).split(',')[0]):''}</div>`).join('')}</div>`:'';
+  const tl=`<ul class="tl">${r.history.filter(h=>kind==='admin'||h.action!=='notify_failed').map(h=>`<li class="${esc(h.action)}"><b>${esc(ACTION_LABEL[h.action]||h.action)}</b> &mdash; ${esc(h.actor)} ${roleTag(h.actorRole)}<div class="tm">${fmtDT(h.time)}</div>${h.note?`<div>${esc(h.note)}</div>`:''}</li>`).join('')}</ul>`;
+  let actions='';
+  const handler = r.status==='pending' && (kind==='admin' || (isOfficeLike(kind) && r.assignedToId===me));
+  if(handler){
+    const officeSide = kind==='office' || (kind==='admin' && !r.withDrm);
+    const others=S.office.filter(o=>o.id!==r.assignedToId);
+    const mustForward = kind==='office' && r.hasIncrease;
+    const canForward = officeSide && r.hasIncrease && (S.drm||[]).length;
+    actions=`<div class="actbox"><div class="field"><label for="dmNote">Your reply</label><textarea id="dmNote" placeholder="Optional when approving. Required when returning the request."></textarea></div>
+      ${mustForward?`<div class="amtnote inc" style="margin:0 0 10px">${ic('chart',14)} This request contains an <b>amount increase</b>. Send it to the Division Reporting Manager, who does the editing and replies.</div>`:''}
+      <div class="row" style="margin-top:10px">${mustForward?'':`<button class="btn btn-success" data-act="respond" data-id="${esc(r.id)}" data-status="completed">${ic('check')} Approve &mdash; editing done</button>`}
+      <button class="btn btn-danger" data-act="respond" data-id="${esc(r.id)}" data-status="returned">${ic('undo')} Return with reason</button></div>
+      ${canForward?`<div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px"><select id="dmDrm" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px">${S.drm.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><button class="btn btn-primary btn-sm" data-act="forward" data-id="${esc(r.id)}">${ic('send',14)} Send to Division Reporting Manager</button></div>`:(mustForward?`<p class="hint" style="margin-top:10px">No Division Reporting Manager account exists yet. Please ask the administrator.</p>`:'')}
+      ${officeSide&&others.length?`<div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px"><select id="dmReassign" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px">${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" data-act="reassign" data-id="${esc(r.id)}">Reassign to this person</button></div>`:''}</div>`;
+  } else if(kind==='field' && r.status==='returned'){
+    actions=`<div class="actbox"><div class="field"><label for="dmNote">Your reply / clarification <span class="req">*</span></label><textarea id="dmNote" placeholder="Answer the question or explain what you have corrected"></textarea></div>
+      <div class="field"><label>Add a picture <span class="muted">optional</span></label>${picBlock('rs',false)}</div>
+      <div class="row" style="margin-top:10px"><button class="btn btn-primary" data-act="resubmit" data-id="${esc(r.id)}">${ic('send')} Send again</button></div></div>`;
+  } else if(r.status==='pending' && r.withDrm){
+    actions=`<div class="amtnote inc" style="margin-top:14px">${ic('chart',14)} With the Division Reporting Manager <b>${esc(r.drmName)}</b>${r.forwardedAt?` since ${fmtDT(r.forwardedAt)}`:''} for the amount increase.</div>`;
+  }
+  $('mBody').innerHTML=`<div class="kv">
+      ${kv('District',esc(r.district))}${kv('Sent by',esc(r.senderName)+roleTag(r.sentByRole)+(r.senderEmpCode?` <span class="muted">${esc(r.senderEmpCode)}</span>`:''))}
+      ${kv('Assigned to',esc(r.assignedToName)+(r.withDrm?` <span class="muted">(Office: ${esc(r.officeName)})</span>`:''))}${kv('Forms',String(r.forms.length))}
+      ${kv('Received',fmtDT(r.createdAt))}${kv('Reply',r.status==='pending'?'Waiting ('+fmtDur(waitHours(r))+')':fmtDT(r.processedAt)+' &mdash; '+esc(r.processedByName)+' ('+fmtDur(respHours(r))+')')}
+    </div>${formsT}${extraT}${replyBox(r)}${actions}
+    <div class="sec" style="margin-top:20px">History</div>${tl}`;
+  $('modal').classList.add('show'); S.pics.rs=null;
+}
+
+/* ---- PDF of the Raseed Amount Editing Form ---- */
+const pdfCache={};
+function loadScript(src){ return new Promise((res,rej)=>{ if(document.querySelector(`script[src="${src}"]`)&&window.__loaded&&window.__loaded[src]) return res(); const sc=document.createElement('script'); sc.src=src; sc.onload=()=>{ (window.__loaded=window.__loaded||{})[src]=1; res(); }; sc.onerror=()=>rej(new Error('Could not load the PDF tools. Check your internet connection, or use Print.')); document.head.appendChild(sc); }); }
+async function inlineImages(root){
+  for(const img of root.querySelectorAll('img[data-sig]')){
+    const url=img.getAttribute('src'); if(/^data:/.test(url)) continue;
+    if(!pdfCache[url]) pdfCache[url]=(await api('getPicture',{url})).data;
+    img.src=pdfCache[url];
+  }
+}
+async function downloadPdf(id,i){
+  const r=S.requests.find(x=>x.id===id), src=$(`rs_${id}_${i}`); if(!r||!src) return;
+  const host=document.createElement('div'); host.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff';
+  const clone=src.cloneNode(true); clone.removeAttribute('id'); clone.style.cssText='border:none;margin:0;max-width:none;width:794px;box-sizing:border-box'; host.appendChild(clone); document.body.appendChild(host);
+  try{
+    await inlineImages(clone);
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const canvas=await window.html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    const pdf=new window.jspdf.jsPDF({unit:'pt',format:'a4'}), W=pdf.internal.pageSize.getWidth(), H=pdf.internal.pageSize.getHeight(), m=24;
+    const w=W-2*m, ratio=w/canvas.width, pageH=Math.floor((H-2*m)/ratio); let y=0;
+    while(y<canvas.height){
+      const sh=Math.min(pageH,canvas.height-y), part=document.createElement('canvas'); part.width=canvas.width; part.height=sh;
+      part.getContext('2d').drawImage(canvas,0,y,canvas.width,sh,0,0,canvas.width,sh);
+      if(y>0) pdf.addPage(); pdf.addImage(part.toDataURL('image/jpeg',0.92),'JPEG',m,m,w,sh*ratio); y+=sh;
+    }
+    pdf.save(`Raseed-Amount-Editing-Form_${id}_form${i+1}.pdf`);
+  } finally { host.remove(); }
+}
+async function printSheet(id,i){
+  const src=$(`rs_${id}_${i}`); if(!src) return;
+  let root=$('printRoot'); if(!root){ root=document.createElement('div'); root.id='printRoot'; document.body.appendChild(root); }
+  root.innerHTML=''; const clone=src.cloneNode(true); clone.removeAttribute('id'); root.appendChild(clone);
+  try{ await inlineImages(clone); }catch(e){}
+  document.body.classList.add('printing'); setTimeout(()=>{ try{ window.print(); }finally{ document.body.classList.remove('printing'); } },60);
+}
+function closeModal(){ $('modal').classList.remove('show'); S.openId=null; }
+async function modalAction(btn,fn){
+  const label=btn.innerHTML; btn.disabled=true;
+  try{ await fn(); }catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
+  finally{ btn.disabled=false; btn.innerHTML=label; }
+}
+
+/* ================================================================
+   GLOBAL EVENTS
+   ================================================================ */
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.profile')) $('profMenu').classList.add('hidden');
+  const tabBtn=e.target.closest('#tabs button'); if(tabBtn){ showTab(tabBtn.dataset.tab); return; }
+  if(e.target.closest('#profBtn')){ const m=$('profMenu'); m.classList.toggle('hidden'); $('profBtn').setAttribute('aria-expanded',String(!m.classList.contains('hidden'))); return; }
+  const t=e.target.closest('[data-act]'); if(!t) return;
+  const act=t.dataset.act, id=t.dataset.id;
+  switch(act){
+    case 'change-url': store.del(LS.url); show('screenSetup'); $('setupUrl').value=''; break;
+    case 'toggle-pw': { const inp=$(t.dataset.target); const hide=inp.type==='password'; inp.type=hide?'text':'password'; t.innerHTML=ic(hide?'eyeoff':'eye',18); t.setAttribute('aria-label',hide?'Hide password':'Show password'); break; }
+    case 'gen-pw': $(t.dataset.target).value=genPassword(); break;
+    case 'logout': logout(); break;
+    case 'change-pw': $('profMenu').classList.add('hidden'); openPwDialog(false); break;
+    case 'refresh': refresh(true); break;
+    case 'form-clear': clearForm(); break;
+    case 'pick-pic': $('pf_'+t.dataset.key).click(); break;
+    case 'form-add': addForm(); { const l=S.forms[S.forms.length-1]; const c=$('fc_'+l); if(c&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'start'}); } break;
+    case 'form-remove': removeForm(t.dataset.uid); break;
+    case 'sig-clear': setSig(t.dataset.key,null); break;
+    case 'rm-pic': setPic(t.dataset.key,null); break;
+    case 'wa-open': setTimeout(()=>closeDlg(true),250); break;
+    case 'st-quick': { const d=new Date(Date.now()-Number(t.dataset.days)*86400000); $('stFrom').value='2020-01-01'; $('stTo').value=d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); stReset(); } break;
+    case 'st-check': stCheck(); break;
+    case 'st-delete': stDelete(); break;
+    case 'open': openDetail(id); break;
+    case 'close-modal': closeModal(); break;
+    case 'close-dlg': closeDlg(); break;
+    case 'img': $('imgBig').src=t.dataset.src; $('imgModal').classList.add('show'); break;
+    case 'close-img': $('imgModal').classList.remove('show'); break;
+    case 'export': exportCsv(); break;
+    case 'copy-link': { const l=getUrl(); (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).catch(()=>{ const i=$('sUrl'); i.select(); document.execCommand('copy'); }).finally(()=>toast('Link copied','success')); } break;
+    case 'respond': modalAction(t,async()=>{
+        const r=await api('respond',{id,status:t.dataset.status,note:$('dmNote').value});
+        toast(t.dataset.status==='completed'?'Approved. The sender will see it in the portal.':'Request returned to the sender','success'); closeModal(); await refresh(true);
+        offerWhatsApp(r.wa,t.dataset.status==='completed'?`Request ${id} is approved`:`Request ${id} is returned`); }); break;
+    case 'reassign': modalAction(t,async()=>{
+        const r=await api('reassign',{id,newOfficeId:$('dmReassign').value,note:$('dmNote').value});
+        toast('Request reassigned','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is reassigned`); }); break;
+    case 'resubmit': modalAction(t,async()=>{
+        const r=await api('resubmit',{id,note:$('dmNote').value,picture:S.pics.rs||undefined}); toast('Request sent again','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent again`); }); break;
+    case 'pdf': modalAction(t,async()=>{ toast('Preparing the PDF…'); await downloadPdf(id,Number(t.dataset.i)); toast('PDF downloaded','success'); }); break;
+    case 'print-sheet': printSheet(id,Number(t.dataset.i)); break;
+    case 'forward': modalAction(t,async()=>{
+        const r=await api('forward',{id,drmId:$('dmDrm').value,note:$('dmNote').value});
+        toast('Sent to the Division Reporting Manager','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent to the Division Reporting Manager`); }); break;
+    case 'user-wa': modalAction(t,async()=>{ await api('testWhatsApp',{id}); toast('Test message sent to WhatsApp','success'); }); break;
+    case 'user-edit': editUserDialog(S.users.find(x=>x.id===id)); break;
+    case 'user-reset': resetUserDialog(S.users.find(x=>x.id===id)); break;
+    case 'user-toggle': toggleUserDialog(S.users.find(x=>x.id===id)); break;
+  }
+});
+$('modal').addEventListener('click',e=>{ if(e.target===$('modal')) closeModal(); });
+$('dlg').addEventListener('click',e=>{ if(e.target===$('dlg')) closeDlg(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('dlg').classList.contains('show')) closeDlg(); else if($('imgModal').classList.contains('show')) $('imgModal').classList.remove('show'); else if($('modal').classList.contains('show')) closeModal(); else $('profMenu').classList.add('hidden'); }
+  if(e.key==='Enter' && $('dlg').classList.contains('show') && e.target.matches('#dlg input')){ const p=$('dFoot').querySelector('.btn-primary'); if(p) p.click(); } });
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+(async function boot(){
+  if(!getUrl()){ show('screenSetup'); return; }
+  const s=loadSession(); if(!s||!s.token){ showLogin(); return; }
+  S.session=s;
+  try{
+    const d=await api('me'); S.session.user=d.user; S.adminDefault=!!d.adminDefaultPassword; saveSession(); enter();
+  }catch(e){
+    if(e.auth){ S.session=null; store.del(LS.session); showLogin('Your session has ended. Please sign in again.'); }
+    else{ S.session=null; showLogin(e.message); }
+  }
+})();
+</script>
+</body>
+</html>
