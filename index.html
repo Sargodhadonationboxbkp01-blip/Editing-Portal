@@ -688,6 +688,7 @@ $('loginForm').addEventListener('submit', async e=>{
 });
 
 function logout(msg){
+  Object.keys(LOOKUP_CACHE).forEach(k=>delete LOOKUP_CACHE[k]);
   store.del(LS.session); S.session=null; clearInterval(S.timer); closeDlg(true); closeModal();
   S.requests=[]; S.users=[]; S.office=[]; S.version=null; S.snap=null; S.loaded=false; document.title='Editing Portal';
   $('profMenu').classList.add('hidden'); showLogin(msg);
@@ -826,9 +827,17 @@ function fv(uid,name){ const e=fq(uid,name); return e?String(e.value||'').trim()
 function today(){ const d=new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
 function addForm(){
   if(S.forms.length>=20){ toast('At most 20 forms in one request.','error'); return; }
+  const prevUid=S.forms[S.forms.length-1];
   const uid='f'+(++S.formSeq); S.forms.push(uid);
   const wrap=document.createElement('div'); wrap.innerHTML=formCardHtml(uid); $('formCards').appendChild(wrap.firstElementChild);
-  renumberForms(); return uid;
+  renumberForms();
+  if(prevUid && $('fc_'+prevUid)){
+    const pc=$('fc_'+prevUid), nc=$('fc_'+uid);
+    ['emp','name','month'].forEach(n=>{ const a=fq(prevUid,n), b=fq(uid,n); if(a&&b&&a.value) b.value=a.value; });
+    nc.dataset.autoName=pc.dataset.autoName||''; nc.dataset.boxPhone=pc.dataset.boxPhone||'';
+    const bi=fq(prevUid,'boxinfo'), nb=fq(uid,'boxinfo'); if(bi&&nb&&!bi.classList.contains('hidden')){ nb.className=bi.className; nb.innerHTML=bi.innerHTML; }
+  }
+  return uid;
 }
 function renumberForms(){
   S.forms.forEach((uid,i)=>{ const c=$('fc_'+uid); c.querySelector('.fcard-t').textContent=`Form ${i+1}`; c.querySelector('[data-act="form-remove"]').classList.toggle('hidden',S.forms.length<2); });
@@ -845,7 +854,7 @@ function formCardHtml(uid){
     <div class="fcard-h"><b class="fcard-t">Form</b><span class="muted">one slip / receipt</span><button class="btn btn-ghost btn-sm" data-act="form-remove" data-uid="${uid}">${ic('trash',14)} Remove</button></div>
     <div class="sec">Whose record is this?</div>
     <div class="grid">
-      <div class="field"><label>Employee Code <span class="req">*</span></label><input data-f="emp" placeholder="e.g. 77437" autocomplete="off"></div>
+      <div class="field"><label>Employee Code <span class="req">*</span></label><input data-f="emp" placeholder="e.g. 77437" autocomplete="off" onfocus="this.select()"></div>
       <div class="field"><label>Name <span class="req">*</span></label><input data-f="name" placeholder="Full name"></div>
       <div class="field"><label>Editing Month <span class="req">*</span></label><input data-f="month" type="month"></div>
       <div class="field"><label>Raseed Book Number <span class="req">*</span></label><input data-f="book" placeholder="e.g. MAB/26/56023"></div>
@@ -996,13 +1005,15 @@ function setPic(key,data){
 /* look up a Box Zimedar by Emp Code: fills the name, contact and the Office Zimedar it reports to */
 const lookupTimers={}, lookupSeqs={};
 function scheduleLookup(uid){ clearTimeout(lookupTimers[uid]); lookupTimers[uid]=setTimeout(()=>runLookup(uid),450); }
+const LOOKUP_CACHE={};
 async function runLookup(uid){
   clearTimeout(lookupTimers[uid]);
   const card=$('fc_'+uid); if(!card) return;
   const code=fv(uid,'emp'), box=fq(uid,'boxinfo'), seq=(lookupSeqs[uid]=(lookupSeqs[uid]||0)+1);
   if(code.length<2){ box.classList.add('hidden'); return; }
   try{
-    const r=await api('lookupBox',{empCode:code}); if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
+    LOOKUP_CACHE[code]=LOOKUP_CACHE[code]||api('lookupBox',{empCode:code}).catch(e=>{ delete LOOKUP_CACHE[code]; throw e; });
+    const r=await LOOKUP_CACHE[code]; if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
     box.classList.remove('hidden');
     if(!r.found){ box.className='boxinfo none'; box.textContent='No Box Zimedar found with this Emp Code. Type the name below.'; card.dataset.autoName=''; card.dataset.boxPhone=''; return; }
     box.className='boxinfo ok';
@@ -1030,7 +1041,7 @@ $('fOffice').addEventListener('input',()=>{ S.autoOffice=false; });
 function clearForm(){
   ['fOffice','fDistrict'].forEach(id=>$(id).value=''); buildFormCardsOnly();
 }
-function buildFormCardsOnly(){ $('formCards').innerHTML=''; S.forms=[]; S.pics={}; S.formSeq=0; S.autoOffice=false; addForm(); }
+function buildFormCardsOnly(){ Object.keys(LOOKUP_CACHE).forEach(k=>delete LOOKUP_CACHE[k]); $('formCards').innerHTML=''; S.forms=[]; S.pics={}; S.formSeq=0; S.autoOffice=false; addForm(); }
 function collectForms(){
   const many=S.forms.length>1, out=[];
   S.forms.forEach((uid,i)=>{
