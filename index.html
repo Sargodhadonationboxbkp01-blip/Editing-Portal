@@ -498,6 +498,17 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <div class="row" style="margin-top:14px"><button class="btn btn-ghost" id="stCheck" data-act="st-check"></button><button class="btn btn-danger" id="stDelete" data-act="st-delete" disabled></button></div>
         <p class="hint" style="margin-top:12px">Deleted pictures go to the Google Drive <b>Trash</b> of the portal owner and can be restored from there for 30 days. Empty the Trash to free space immediately.</p>
       </div>
+      <div class="card">
+        <h2>Delete requests by period</h2>
+        <p class="sub">Removes whole requests (details, replies, history and pictures) received between two dates. <b>This cannot be undone.</b> To delete one request, open it from <b>All records</b> and use <b>Delete this request</b>. Tip: use <b>Export</b> on the All records tab first to keep a copy.</p>
+        <div class="grid" style="max-width:520px">
+          <div class="field"><label for="rdFrom">From date</label><input id="rdFrom" type="date"></div>
+          <div class="field"><label for="rdTo">To date</label><input id="rdTo" type="date"></div>
+          <div class="field"><label for="rdStatus">Status</label><select id="rdStatus"><option value="">All statuses</option><option value="completed">Completed only</option><option value="returned">Returned only</option><option value="pending">Pending only</option></select></div>
+        </div>
+        <div class="alert warn hidden" id="rdResult" style="margin-top:14px"></div>
+        <div class="row" style="margin-top:14px"><button class="btn btn-ghost" id="rdCheck" data-act="rd-check"></button><button class="btn btn-danger" id="rdDelete" data-act="rd-delete" disabled></button></div>
+      </div>
     </section>
 
     <!-- SETUP (admin) -->
@@ -521,7 +532,7 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
       </div>
       <div class="card">
         <h2>Storage</h2>
-        <p class="sub">Pictures take up Google Drive space. Use the <b>Pictures</b> tab to delete old pictures by date. Only the picture files are removed; every request and its history stay.</p>
+        <p class="sub">Pictures take up Google Drive space. Use the <b>Storage</b> tab to delete old pictures (or whole old requests) by date. Only the picture files are removed; every request and its history stay.</p>
       </div>
     </section>
   </main>
@@ -577,7 +588,7 @@ const TABS = {
   field:[['new','New request','plus'],['my','My requests','file']],
   office:[['inbox','Inbox','inbox'],['records','Records','list'],['dashboard','My report','chart']],
   drm:[['inbox','Inbox','inbox'],['records','Records','list'],['dashboard','My report','chart']],
-  admin:[['dashboard','Dashboard','chart'],['records','All records','list'],['users','Users','users'],['storage','Pictures','image'],['setup','Setup','sliders']]
+  admin:[['dashboard','Dashboard','chart'],['records','All records','list'],['users','Users','users'],['storage','Storage','image'],['setup','Setup','sliders']]
 };
 const ICON = {
   plus:'<path d="M12 5v14M5 12h14"/>',
@@ -1537,7 +1548,39 @@ function stRange(){
 }
 function stReset(){ const r=$('stResult'); r.classList.add('hidden'); $('stDelete').disabled=true; S.stCount=0; }
 ['stFrom','stTo'].forEach(id=>$(id).addEventListener('input',stReset));
-function renderStorage(){ $('stCheck').innerHTML=ic('eye')+' Check how many'; $('stDelete').innerHTML=ic('trash')+' Delete these pictures'; }
+function renderStorage(){ $('rdCheck').innerHTML=ic('eye')+' Check how many'; $('rdDelete').innerHTML=ic('trash')+' Delete these requests'; $('stCheck').innerHTML=ic('eye')+' Check how many'; $('stDelete').innerHTML=ic('trash')+' Delete these pictures'; }
+/* ADMIN: delete requests (one or a period) */
+function confirmDeleteDlg(title,bodyHtml,run){
+  openDlg({title,body:bodyHtml+`<div class="field" style="margin-top:12px"><label for="dcWord">Type <b>DELETE</b> to confirm</label><input id="dcWord" autocomplete="off" placeholder="DELETE"></div>`,
+    buttons:[{label:'Cancel'},{label:ic('trash',14)+' Delete permanently',cls:'btn-danger',onClick:async()=>{
+      if($('dcWord').value.trim()!=='DELETE') throw new Error('Please type DELETE to confirm.'); await run(); }}]});
+}
+function dropLocal(ids){ const s=new Set(ids); S.requests=S.requests.filter(r=>!s.has(r.id)); renderAll(); }
+function rdRange(){
+  const f=$('rdFrom').value, t=$('rdTo').value;
+  if(!f||!t) throw new Error('Please choose both dates.');
+  if(f>t) throw new Error('The start date must not be after the end date.');
+  return {fromISO:new Date(f+'T00:00:00').toISOString(), toISO:new Date(t+'T23:59:59.999').toISOString(), status:$('rdStatus').value, f, t};
+}
+function rdReset(){ $('rdResult').classList.add('hidden'); $('rdDelete').disabled=true; S.rdCount=0; }
+['rdFrom','rdTo','rdStatus'].forEach(id=>$(id).addEventListener('input',rdReset));
+async function rdCheck(){
+  const btn=$('rdCheck'); btn.disabled=true;
+  try{
+    const rg=rdRange(), r=await api('countRequests',{fromISO:rg.fromISO,toISO:rg.toISO,status:rg.status}), box=$('rdResult');
+    box.classList.remove('hidden'); S.rdCount=r.requests; S.rdRange=rg;
+    box.innerHTML=r.requests?`<b>${r.requests}</b> request${r.requests>1?'s':''} (${r.pending} still pending) and <b>${r.pictures}</b> picture${r.pictures===1?'':'s'}/signature${r.pictures===1?'':'s'} received from ${esc(rg.f)} to ${esc(rg.t)} will be deleted.`:'No requests found in this period.';
+    $('rdDelete').disabled=!r.requests;
+  }catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
+  finally{ btn.disabled=false; }
+}
+function rdDelete(){
+  const rg=S.rdRange; if(!S.rdCount||!rg) return;
+  confirmDeleteDlg('Delete '+S.rdCount+' request'+(S.rdCount>1?'s':'')+'?',`<p style="margin:0">All requests received from <b>${esc(rg.f)}</b> to <b>${esc(rg.t)}</b>${rg.status?' with status <b>'+esc(rg.status)+'</b>':''} will be removed for everyone, together with their history and pictures. This cannot be undone.</p>`,async()=>{
+    const r=await api('deleteRequests',{fromISO:rg.fromISO,toISO:rg.toISO,status:rg.status,confirm:true});
+    dropLocal(r.ids); rdReset(); toast(r.deleted+' request'+(r.deleted>1?'s':'')+' deleted','success'); refresh(true); });
+}
+
 async function stCheck(){
   const btn=$('stCheck'); btn.disabled=true;
   try{
@@ -1632,7 +1675,7 @@ function openDetail(id){
       ${kv('District',esc(r.district))}${kv('Sent by',esc(r.senderName)+roleTag(r.sentByRole)+(r.senderEmpCode?` <span class="muted">${esc(r.senderEmpCode)}</span>`:''))}
       ${kv('Assigned to',esc(r.assignedToName)+(r.withDrm?` <span class="muted">(Office: ${esc(r.officeName)})</span>`:''))}${kv('Forms',String(r.forms.length))}
       ${kv('Received',fmtDT(r.createdAt))}${kv('Reply',r.status==='pending'?'Waiting ('+fmtDur(waitHours(r))+')':fmtDT(r.processedAt)+' &mdash; '+esc(r.processedByName)+' ('+fmtDur(respHours(r))+')')}
-    </div>${formsT}${extraT}${replyBox(r)}${actions}
+    </div>${formsT}${extraT}${replyBox(r)}${actions}${kind==='admin'?`<div class="row" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:12px"><button class="btn btn-danger btn-sm" data-act="req-delete" data-id="${esc(r.id)}">${ic('trash',14)} Delete this request</button></div>`:''}
     <div class="sec" style="margin-top:20px">History</div>${tl}`;
   $('modal').classList.add('show'); S.pics.rs=null;
 }
@@ -1705,6 +1748,11 @@ document.addEventListener('click',e=>{
     case 'wa-open': setTimeout(()=>closeDlg(true),250); break;
     case 'st-quick': { const d=new Date(Date.now()-Number(t.dataset.days)*86400000); $('stFrom').value='2020-01-01'; $('stTo').value=d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); stReset(); } break;
     case 'st-check': stCheck(); break;
+    case 'rd-check': rdCheck(); break;
+    case 'rd-delete': rdDelete(); break;
+    case 'req-delete': { const rq=S.requests.find(x=>x.id===id); closeModal();
+        confirmDeleteDlg('Delete request '+id+'?',`<p style="margin:0">Request <b>${esc(id)}</b>${rq?` (${esc(rq.senderName)} &rarr; ${esc(rq.assignedToName)}, ${esc(rq.status)})`:''} will be removed for everyone, with its history and pictures. This cannot be undone.</p>`,async()=>{
+          const r=await api('deleteRequests',{ids:[id],confirm:true}); dropLocal(r.ids); toast('Request deleted','success'); refresh(true); }); } break;
     case 'st-delete': stDelete(); break;
     case 'open': openDetail(id); break;
     case 'close-modal': closeModal(); break;
