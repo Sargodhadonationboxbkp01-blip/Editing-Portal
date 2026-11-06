@@ -445,13 +445,38 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <div class="alert error hidden" id="uErr" style="margin-top:12px"></div>
         <div class="row" style="margin-top:14px"><button class="btn btn-primary" id="uCreate"></button></div>
       </div>
+      <div class="card">
+        <h2>Create many accounts at once</h2>
+        <p class="sub">Choose the role (and districts) once, then paste one person per line. A password is made automatically for anyone without one.</p>
+        <div class="grid">
+          <div class="field"><label for="bRole">Role <span class="req">*</span></label><select id="bRole"></select></div>
+          <div class="field hidden" id="bOfficeWrap"><label for="bOffice">Reports to (Office Zimedar) <span class="req">*</span></label><select id="bOffice"></select></div>
+          <div class="field full" id="bDistWrap"><label>Districts <span class="req">*</span> <span class="muted">tick one or more</span></label><div class="chips" id="bDistricts"></div></div>
+          <div class="field full"><label for="bLines">One person per line <span class="req">*</span></label>
+            <textarea id="bLines" rows="6" spellcheck="false" style="font-family:Consolas,monospace" placeholder="Hussnain Ali, SV101, 0300 1234567&#10;Bilal Ahmed, SV102, 0311 7654321, MyPass123&#10;Nadeem Khan, BZ201"></textarea>
+            <span class="hint">Format: <b>Name, EmpCode, WhatsApp, Password</b>. WhatsApp and Password are optional. You can separate with a comma, a tab or |.</span></div>
+        </div>
+        <div class="alert error hidden" id="bErr" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:14px"><button class="btn btn-primary" id="bCreate">Create accounts</button><span class="muted" id="bInfo"></span></div>
+      </div>
+      <div class="card">
+        <h2>Add WhatsApp numbers to existing accounts</h2>
+        <p class="sub">For accounts that were made without a number. One per line: <b>EmpCode = Number</b>.</p>
+        <textarea id="pLines" rows="4" spellcheck="false" style="font-family:Consolas,monospace;width:100%;box-sizing:border-box" placeholder="SV101=0300 1234567&#10;BZ201=0311 7654321"></textarea>
+        <div class="alert error hidden" id="pErr" style="margin-top:12px"></div>
+        <div class="row" style="margin-top:12px"><button class="btn btn-primary" id="pSave">Save numbers</button></div>
+      </div>
       <div class="filters">
         <div class="field"><label>Role</label><select id="ufRole"></select></div>
         <div class="field"><label>Status</label><select id="ufStatus"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
         <div class="field grow"><label>Search</label><input id="ufSearch" placeholder="Name or Emp Code…"></div>
       </div>
       <div class="muted" id="uCount" style="margin:0 0 8px"></div>
-      <div class="tw"><table><thead><tr><th>Name</th><th>Emp Code</th><th>Role</th><th>Districts</th><th>WhatsApp</th><th>Requests</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead><tbody id="uBody"></tbody></table></div>
+      <div class="alert hidden" id="uSelBar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><b id="uSelN"></b>
+        <button class="btn btn-primary btn-sm" data-act="sel-dist" data-mode="add">Add districts</button>
+        <button class="btn btn-ghost btn-sm" data-act="sel-dist" data-mode="replace">Set districts</button>
+        <button class="btn btn-ghost btn-sm" data-act="sel-clear">Clear selection</button></div>
+      <div class="tw"><table><thead><tr><th style="width:28px"><input type="checkbox" id="uSelAll" aria-label="Select all shown"></th><th>Name</th><th>Emp Code</th><th>Role</th><th>Districts</th><th>WhatsApp</th><th>Requests</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead><tbody id="uBody"></tbody></table></div>
     </section>
 
     <!-- PICTURES (admin) -->
@@ -734,7 +759,7 @@ function fillFilters(){
   $('rRole').innerHTML=opts(FIELD_ROLES,'All roles');
   const admin=U().kind==='admin';
   $('rOfficeWrap').classList.toggle('hidden',!admin); $('dOfficeCard').classList.toggle('hidden',!admin);
-  if(admin){ $('uRole').innerHTML=opts(ALL_ROLES,'Select role'); $('uDistricts').innerHTML=distChips('uDist'); $('ufRole').innerHTML=opts(ALL_ROLES,'All roles'); $('uPass').value=genPassword(); $('uDistWrap').classList.remove('hidden'); }
+  if(admin){ $('uRole').innerHTML=opts(ALL_ROLES,'Select role'); $('uDistricts').innerHTML=distChips('uDist'); $('ufRole').innerHTML=opts(ALL_ROLES,'All roles'); $('bRole').innerHTML=opts(ALL_ROLES,'Select role'); $('bDistricts').innerHTML=distChips('bDist'); $('uPass').value=genPassword(); $('uDistWrap').classList.remove('hidden'); }
 }
 function showTab(k){
   if(S.tab==='my' && k!=='my') S.newMarks.clear();
@@ -748,6 +773,13 @@ function showTab(k){
    DATA REFRESH
    ================================================================ */
 function setConn(state,text){ $('conn').className='conn '+state; $('connText').textContent=text; }
+function patchReq(r){
+  if(!r||!r.id) return;
+  const i=S.requests.findIndex(x=>x.id===r.id);
+  if(i>=0){ r.history=(S.requests[i].history||[]); S.requests[i]=r; } else S.requests.unshift(r);
+  S.snap=S.snap||{}; S.snap[r.id]=[r.status,r.processedAt,r.assignedToId,r.resubmitCount].join('|');
+  S.loaded=true; renderAll();
+}
 async function refresh(force){
   if(S.busy||!S.session) return; S.busy=true; setConn('sync','Syncing…');
   try{
@@ -777,7 +809,7 @@ function applyData(d){
       if(got.length) toast(`${got.length} request${got.length>1?'s have':' has'} received a reply`,'success');
     }
   }
-  S.snap=snap; S.requests=d.requests; S.office=d.office||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
+  S.snap=snap; S.requests=d.requests; S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
   renderAll();
 }
 
@@ -1004,7 +1036,8 @@ function setPic(key,data){
 }
 /* look up a Box Zimedar by Emp Code: fills the name, contact and the Office Zimedar it reports to */
 const lookupTimers={}, lookupSeqs={};
-function scheduleLookup(uid){ clearTimeout(lookupTimers[uid]); lookupTimers[uid]=setTimeout(()=>runLookup(uid),450); }
+function localBox(code){ const c=String(code||'').trim().toLowerCase(); const b=(S.boxes||[]).find(x=>String(x.empCode).toLowerCase()===c); return b?Object.assign({found:true,role:'Box Zimedar'},b):null; }
+function scheduleLookup(uid){ clearTimeout(lookupTimers[uid]); lookupTimers[uid]=setTimeout(()=>runLookup(uid),localBox(fv(uid,'emp'))?0:350); }
 const LOOKUP_CACHE={};
 async function runLookup(uid){
   clearTimeout(lookupTimers[uid]);
@@ -1012,8 +1045,9 @@ async function runLookup(uid){
   const code=fv(uid,'emp'), box=fq(uid,'boxinfo'), seq=(lookupSeqs[uid]=(lookupSeqs[uid]||0)+1);
   if(code.length<2){ box.classList.add('hidden'); return; }
   try{
-    LOOKUP_CACHE[code]=LOOKUP_CACHE[code]||api('lookupBox',{empCode:code}).catch(e=>{ delete LOOKUP_CACHE[code]; throw e; });
-    const r=await LOOKUP_CACHE[code]; if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
+    const loc=localBox(code);
+    if(!loc) LOOKUP_CACHE[code]=LOOKUP_CACHE[code]||api('lookupBox',{empCode:code}).catch(e=>{ delete LOOKUP_CACHE[code]; throw e; });
+    const r=loc||await LOOKUP_CACHE[code]; if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
     box.classList.remove('hidden');
     if(!r.found){ box.className='boxinfo none'; box.textContent='No Box Zimedar found with this Emp Code. Type the name below.'; card.dataset.autoName=''; card.dataset.boxPhone=''; return; }
     box.className='boxinfo ok';
@@ -1094,7 +1128,7 @@ $('fSubmit').addEventListener('click',async()=>{
     rec.forms=collectForms();
     btn.disabled=true; btn.textContent='Sending…';
     const r=await api('submit',{record:rec});
-    toast(`Request ${r.id} sent`,'success'); clearForm(); await refresh(true); showTab('my');
+    toast(`Request ${r.id} sent`,'success'); clearForm(); patchReq(r.request); showTab('my'); refresh(true);
     offerWhatsApp(r.wa,`Request ${r.id} has been sent`);
   }catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
   finally{ btn.disabled=false; btn.innerHTML=ic('send')+' Send request'; }
@@ -1310,22 +1344,38 @@ function userStats(u){
   const m=S.requests.filter(r=>r.senderId?r.senderId===u.id:(r.senderName===u.name&&r.district===u.district)); return `${m.length} sent`;
 }
 function renderUsers(){
-  if(!S.loaded){ $('uBody').innerHTML=`<tr><td colspan="9"><div class="loading">Loading…</div></td></tr>`; return; }
+  if(!S.loaded){ $('uBody').innerHTML=`<tr><td colspan="10"><div class="loading">Loading…</div></td></tr>`; return; }
   const role=$('ufRole').value, st=$('ufStatus').value, q=$('ufSearch').value.trim().toLowerCase();
   const items=(S.users||[]).filter(u=>(!role||u.role===role)&&(!st||(st==='active')===u.active)&&(!q||(u.name+' '+u.empCode).toLowerCase().includes(q)));
-  fillOfficeSelect('uOffice');
+  fillOfficeSelect('uOffice'); fillOfficeSelect('bOffice'); updateSelBar();
   $('uCount').textContent=`${items.length} of ${(S.users||[]).length} account${(S.users||[]).length===1?'':'s'}`;
+  S.sel=S.sel||new Set(); const ids=new Set((S.users||[]).map(x=>x.id)); [...S.sel].forEach(x=>{ if(!ids.has(x)) S.sel.delete(x); });
   $('uBody').innerHTML=items.length?items.map(u=>`<tr>
+    <td>${u.role==='Office Zimedar'||u.role===DRM?'':`<input type="checkbox" class="usel" data-id="${esc(u.id)}" ${S.sel.has(u.id)?'checked':''} aria-label="Select ${esc(u.name)}">`}</td>
     <td><b>${esc(u.name)}</b></td><td>${esc(u.empCode)}</td><td>${roleTag(u.role)}${u.role==='Box Zimedar'?`<div class="muted">Reports to ${esc(u.officeName||'— not set —')}</div>`:''}</td><td>${esc(u.district||'—')}</td>
-    <td>${u.phone?`<span class="wa-ok">+${esc(u.phone)}</span>${u.waKey?`<div class="muted">Automatic · <button class="linkbtn" data-act="user-wa" data-id="${esc(u.id)}">Send test</button></div>`:'<div class="muted">One-tap button</div>'}`:'<span class="wa-no">Not added</span>'}</td><td>${userStats(u)}</td>
+    <td>${u.phone?`<span class="wa-ok">+${esc(u.phone)}</span>${u.waKey?`<div class="muted">Automatic · <button class="linkbtn" data-act="user-wa" data-id="${esc(u.id)}">Send test</button></div>`:'<div class="muted">One-tap button</div>'}`:`<span class="wa-no">Not added</span> <button class="linkbtn" data-act="user-phone" data-id="${esc(u.id)}">Add number</button>`}</td><td>${userStats(u)}</td>
     <td>${u.lastLoginAt?fmtDT(u.lastLoginAt):'<span class="muted">Never</span>'}${u.mustChange?'<div class="muted">Temporary password</div>':''}</td>
     <td>${u.active?'<span class="pill ok">Active</span>':'<span class="pill off">Inactive</span>'}</td>
     <td><div class="row" style="flex-wrap:nowrap">
       <button class="btn btn-ghost btn-sm" data-act="user-edit" data-id="${esc(u.id)}">Edit</button>
       <button class="btn btn-ghost btn-sm" data-act="user-reset" data-id="${esc(u.id)}">Reset password</button>
       <button class="btn btn-ghost btn-sm" data-act="user-toggle" data-id="${esc(u.id)}">${u.active?'Deactivate':'Activate'}</button></div></td></tr>`).join('')
-    : `<tr><td colspan="9">${emptyState((S.users||[]).length?'No accounts match your filters.':'No accounts yet. Create the first one above.')}</td></tr>`;
+    : `<tr><td colspan="10">${emptyState((S.users||[]).length?'No accounts match your filters.':'No accounts yet. Create the first one above.')}</td></tr>`;
 }
+function updateSelBar(){ const n=S.sel?S.sel.size:0; $('uSelBar').classList.toggle('hidden',!n); $('uSelN').textContent=n+' selected'; }
+function bulkDistrictsDialog(mode){
+  const ids=[...S.sel]; if(!ids.length) return;
+  openDlg({title:mode==='add'?'Add districts':'Set districts',
+    body:`<p style="margin:0 0 10px">${mode==='add'?'These districts will be <b>added</b> to the existing districts of':'The districts of'} <b>${ids.length}</b> selected account${ids.length>1?'s':''} ${mode==='add'?'.':'will be <b>replaced</b> by the ones you tick.'}</p><div class="chips">${distChips('bsDist')}</div>`,
+    buttons:[{label:'Cancel'},{label:mode==='add'?'Add districts':'Set districts',cls:'btn-primary',onClick:async()=>{
+      const ds=pickedDistricts('bsDist'); if(!ds.length) throw new Error('Please tick at least one district.');
+      const r=await api('bulkUpdateUsers',{ids,mode,districts:ds}); S.sel.clear(); toast(r.updated+' account'+(r.updated===1?'':'s')+' updated'+(r.skipped.length?' ('+r.skipped.length+' skipped)':''),'success'); refresh(true); }}]});
+}
+function phoneDialog(u){
+  openDlg({title:'WhatsApp number for '+u.name,body:`<div class="field"><label for="phNum">WhatsApp number</label><input id="phNum" type="tel" value="${esc(u.phone||'')}" placeholder="e.g. 0300 1234567" autocomplete="off"></div>`,
+    buttons:[{label:'Cancel'},{label:'Save',cls:'btn-primary',onClick:async()=>{ const v=$('phNum').value.trim(); if(!v) throw new Error('Please enter the number.'); await api('updateUser',{id:u.id,phone:v}); toast('Number saved','success'); refresh(true); }}]});
+}
+function splitLine(l){ return l.split(/\t|\||,/).map(x=>x.trim()); }
 function credsHtml(u,pw){
   return `<div class="creds"><div><span>Name</span><b>${esc(u.name)}</b></div><div><span>Role</span><b>${esc(u.role)}${u.district?' · '+esc(u.district):''}</b></div><div><span>Emp Code</span><b>${esc(u.empCode)}</b></div><div><span>Temporary password</span><b>${esc(pw)}</b></div></div>
     <p class="hint" style="margin:8px 0 0">Share these details with the person privately. They will be asked to choose a new password when they first sign in. For security this password is shown only now.</p>`;
@@ -1351,6 +1401,50 @@ $('uCreate').addEventListener('click',async()=>{
   }catch(e){ if(e.auth){ logout(e.message); return; } err.textContent=e.message; err.classList.remove('hidden'); }
   finally{ btn.disabled=false; }
 });
+
+$('bRole').addEventListener('input',()=>{ const r=$('bRole').value; $('bDistWrap').classList.toggle('hidden',r==='Office Zimedar'||r===DRM); $('bOfficeWrap').classList.toggle('hidden',r!=='Box Zimedar'); });
+$('bCreate').addEventListener('click',async()=>{
+  const btn=$('bCreate'), err=$('bErr'); err.classList.add('hidden');
+  const role=$('bRole').value, districts=pickedDistricts('bDist'), officeId=$('bOffice').value;
+  const show=m=>{ err.textContent=m; err.classList.remove('hidden'); };
+  if(!role) return show('Please choose a role.');
+  if(role==='Box Zimedar'&&!officeId) return show('Please choose the Office Zimedar these Box Zimedars report to.');
+  if(role!=='Office Zimedar'&&role!==DRM&&!districts.length) return show('Please tick at least one district.');
+  const lines=$('bLines').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const p=splitLine(l); return {name:p[0]||'',empCode:p[1]||'',phone:p[2]||'',password:p[3]||''}; });
+  if(!lines.length) return show('Please enter at least one person.');
+  const badIdx=lines.findIndex(l=>!l.name||!l.empCode); if(badIdx>=0) return show('Line '+(badIdx+1)+': write the name and the Emp Code, e.g. Hussnain Ali, SV101');
+  btn.disabled=true; $('bInfo').textContent='Creating '+lines.length+' account'+(lines.length>1?'s':'')+'…';
+  try{
+    const r=await api('createUsersBulk',{role,districts,officeId,lines}); $('bInfo').textContent='';
+    const dist=(role==='Office Zimedar'||role===DRM)?'':districts.join(', ');
+    const text=r.created.map(c=>`Editing Portal login\nName: ${c.name}\nRole: ${role}${dist?' ('+dist+')':''}\nEmp Code: ${c.empCode}\nTemporary password: ${c.password}`).join('\n\n');
+    const body=`<p style="margin:0 0 8px"><b>${r.created.length}</b> account${r.created.length===1?'':'s'} created${r.failed.length?`, <b style="color:#B42318">${r.failed.length} not created</b>`:''}.</p>
+      ${r.created.length?`<div class="tw" style="box-shadow:none;max-height:260px;overflow:auto"><table><thead><tr><th>Name</th><th>Emp Code</th><th>Temporary password</th></tr></thead><tbody>${r.created.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.empCode)}</td><td><b style="font-family:Consolas,monospace">${esc(c.password)}</b></td></tr>`).join('')}</tbody></table></div><p class="hint" style="margin:8px 0 0">Share each person's details privately. Passwords are shown only now &mdash; use <b>Copy all</b> before closing.</p>`:''}
+      ${r.failed.length?`<div class="alert error" style="margin-top:10px"><b>Not created:</b><br>${r.failed.map(f=>`Line ${f.line} (${esc(f.empCode||f.name)}): ${esc(f.error)}`).join('<br>')}</div>`:''}`;
+    openDlg({title:'Bulk accounts',body,buttons:[
+      ...(r.created.length?[{label:ic('copy',14)+' Copy all',cls:'btn-ghost',onClick:async()=>{ try{ await navigator.clipboard.writeText(text); }catch(e){ const x=document.createElement('textarea'); x.value=text; document.body.appendChild(x); x.select(); document.execCommand('copy'); x.remove(); } toast('Copied','success'); return false; }}]:[]),
+      {label:'Done',cls:'btn-primary'}]});
+    if(!r.failed.length){ $('bLines').value=''; }
+    else{ const bad=new Set(r.failed.map(f=>f.line)); $('bLines').value=$('bLines').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).filter((l,i)=>bad.has(i+1)).join('\n'); }
+    refresh(true);
+  }catch(e){ $('bInfo').textContent=''; if(e.auth){ logout(e.message); return; } show(e.message); }
+  finally{ btn.disabled=false; }
+});
+$('pSave').addEventListener('click',async()=>{
+  const btn=$('pSave'), err=$('pErr'); err.classList.add('hidden');
+  const lines=$('pLines').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const i=l.search(/[=,\t|]/); return i<0?{empCode:l,phone:''}:{empCode:l.slice(0,i).trim(),phone:l.slice(i+1).trim()}; });
+  if(!lines.length){ err.textContent='Please enter at least one line.'; err.classList.remove('hidden'); return; }
+  btn.disabled=true;
+  try{
+    const r=await api('setPhones',{lines});
+    toast(r.updated.length+' number'+(r.updated.length===1?'':'s')+' saved'+(r.failed.length?', '+r.failed.length+' failed':''),r.failed.length?'error':'success');
+    if(r.failed.length){ err.innerHTML=r.failed.map(f=>`Line ${f.line} (${esc(f.empCode)}): ${esc(f.error)}`).join('<br>'); err.classList.remove('hidden'); const bad=new Set(r.failed.map(f=>f.line)); $('pLines').value=$('pLines').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).filter((l,i)=>bad.has(i+1)).join('\n'); } else $('pLines').value='';
+    refresh(true);
+  }catch(e){ if(e.auth){ logout(e.message); return; } err.textContent=e.message; err.classList.remove('hidden'); }
+  finally{ btn.disabled=false; }
+});
+$('uBody').addEventListener('change',e=>{ const c=e.target.closest('.usel'); if(!c) return; S.sel=S.sel||new Set(); c.checked?S.sel.add(c.dataset.id):S.sel.delete(c.dataset.id); updateSelBar(); });
+$('uSelAll').addEventListener('change',e=>{ S.sel=S.sel||new Set(); document.querySelectorAll('#uBody .usel').forEach(c=>{ c.checked=e.target.checked; e.target.checked?S.sel.add(c.dataset.id):S.sel.delete(c.dataset.id); }); updateSelBar(); });
 function editUserDialog(u){
   const isOffice=u.role==='Office Zimedar'||u.role===DRM;
   openDlg({title:'Edit '+u.name,
@@ -1575,20 +1669,23 @@ document.addEventListener('click',e=>{
     case 'copy-link': { const l=getUrl(); (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).catch(()=>{ const i=$('sUrl'); i.select(); document.execCommand('copy'); }).finally(()=>toast('Link copied','success')); } break;
     case 'respond': modalAction(t,async()=>{
         const r=await api('respond',{id,status:t.dataset.status,note:$('dmNote').value});
-        toast(t.dataset.status==='completed'?'Approved. The sender will see it in the portal.':'Request returned to the sender','success'); closeModal(); await refresh(true);
+        toast(t.dataset.status==='completed'?'Approved. The sender will see it in the portal.':'Request returned to the sender','success'); closeModal(); patchReq(r.request); refresh(true);
         offerWhatsApp(r.wa,t.dataset.status==='completed'?`Request ${id} is approved`:`Request ${id} is returned`); }); break;
     case 'reassign': modalAction(t,async()=>{
         const r=await api('reassign',{id,newOfficeId:$('dmReassign').value,note:$('dmNote').value});
-        toast('Request reassigned','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is reassigned`); }); break;
+        toast('Request reassigned','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is reassigned`); }); break;
     case 'resubmit': modalAction(t,async()=>{
-        const r=await api('resubmit',{id,note:$('dmNote').value,picture:S.pics.rs||undefined}); toast('Request sent again','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent again`); }); break;
+        const r=await api('resubmit',{id,note:$('dmNote').value,picture:S.pics.rs||undefined}); toast('Request sent again','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent again`); }); break;
     case 'pdf': modalAction(t,async()=>{ toast('Preparing the PDF…'); await downloadPdf(id,Number(t.dataset.i)); toast('PDF downloaded','success'); }); break;
     case 'print-sheet': printSheet(id,Number(t.dataset.i)); break;
     case 'forward': modalAction(t,async()=>{
         const r=await api('forward',{id,drmId:$('dmDrm').value,note:$('dmNote').value});
-        toast('Sent to the Division Reporting Manager','success'); closeModal(); await refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent to the Division Reporting Manager`); }); break;
+        toast('Sent to the Division Reporting Manager','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent to the Division Reporting Manager`); }); break;
     case 'user-wa': modalAction(t,async()=>{ await api('testWhatsApp',{id}); toast('Test message sent to WhatsApp','success'); }); break;
     case 'user-edit': editUserDialog(S.users.find(x=>x.id===id)); break;
+    case 'user-phone': phoneDialog(S.users.find(x=>x.id===id)); break;
+    case 'sel-dist': bulkDistrictsDialog(t.dataset.mode); break;
+    case 'sel-clear': S.sel.clear(); document.querySelectorAll('#uBody .usel,#uSelAll').forEach(c=>c.checked=false); updateSelBar(); break;
     case 'user-reset': resetUserDialog(S.users.find(x=>x.id===id)); break;
     case 'user-toggle': toggleUserDialog(S.users.find(x=>x.id===id)); break;
   }
