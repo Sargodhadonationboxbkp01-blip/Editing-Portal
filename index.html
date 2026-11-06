@@ -255,6 +255,7 @@ tr.click{cursor:pointer}tr.click:hover{background:#FAF9F5}
 .creds div{display:flex;justify-content:space-between;gap:14px;padding:5px 0;font-size:13px;border-bottom:1px dashed #CFE6E3}
 .creds div:last-child{border-bottom:none}
 .creds span{color:var(--muted)}.creds b{font-family:Consolas,'SF Mono',monospace;font-size:14px;color:var(--navy);word-break:break-all;text-align:right}
+.swrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;font-size:14px}.swrow:first-of-type{border-top:0}.swrow input{appearance:none;-webkit-appearance:none;width:42px;height:24px;border-radius:99px;background:#C9C6BC;position:relative;cursor:pointer;flex:none;transition:.2s;border:0}.swrow input::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}.swrow input:checked{background:var(--green-d)}.swrow input:checked::after{left:21px}
 .waitov{position:fixed;inset:0;background:rgba(40,44,52,.72);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(1px)}
 .waitov.show{display:flex}
 .waitbox{background:#fff;border-radius:10px;max-width:480px;width:100%;padding:22px 20px 18px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)}
@@ -527,6 +528,12 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <p class="sub">Send this link to your team on WhatsApp or by SMS. Anyone who opens it sees the sign-in page and signs in with their own Emp Code and password. Nobody needs a file. On a phone they can tap <b>Add to Home screen</b> in the browser menu to keep it like an app.</p>
         <div class="field"><input id="sUrl" readonly></div>
         <div class="row" style="margin-top:10px"><button class="btn btn-primary" data-act="copy-link" id="copyLinkBtn"></button><a class="btn btn-ghost" id="openLinkBtn" target="_blank" rel="noopener">Open link</a><a class="btn btn-wa" id="waLinkBtn" target="_blank" rel="noopener"></a></div>
+      </div>
+      <div class="card">
+        <h2>What Office Zimedars can see</h2>
+        <p class="sub">Show or hide the <b>My report</b> tab (their dashboard of times, late and replied requests). Switch it off to hide it, on to show it again. It takes effect for everyone within a minute.</p>
+        <label class="swrow"><input type="checkbox" id="setOfficeRep" data-act="set-reports" data-who="officeReports"><span>Show <b>My report</b> tab to Office Zimedars</span></label>
+        <label class="swrow"><input type="checkbox" id="setDrmRep" data-act="set-reports" data-who="drmReports"><span>Show <b>My report</b> tab to Division Reporting Managers</span></label>
       </div>
       <div class="card">
         <h2>WhatsApp messages (free)</h2>
@@ -815,6 +822,17 @@ function fillFilters(){
   $('rOfficeWrap').classList.toggle('hidden',!admin); $('dOfficeCard').classList.toggle('hidden',!admin);
   if(admin){ $('uRole').innerHTML=opts(ALL_ROLES,'Select role'); $('uDistricts').innerHTML=distChips('uDist'); $('ufRole').innerHTML=opts(ALL_ROLES,'All roles'); $('bRole').innerHTML=opts(ALL_ROLES,'Select role'); $('bDistricts').innerHTML=distChips('bDist'); $('uPass').value=genPassword(); $('uDistWrap').classList.remove('hidden'); }
 }
+function reportsAllowed(){
+  const k=U()&&U().kind, s=S.settings||{};
+  if(k==='office') return s.officeReports!==false;
+  if(k==='drm') return s.drmReports!==false;
+  return true;
+}
+function applyTabVisibility(){
+  const btn=document.querySelector('#tabs button[data-tab="dashboard"]'); if(!btn||!U()||U().kind==='admin') return;
+  const ok=reportsAllowed(); btn.classList.toggle('hidden',!ok);
+  if(!ok && S.tab==='dashboard') showTab('inbox');
+}
 function showTab(k){
   if(S.tab==='my' && k!=='my') S.newMarks.clear();
   S.tab=k;
@@ -863,7 +881,7 @@ function applyData(d){
       if(got.length) toast(`${got.length} request${got.length>1?'s have':' has'} received a reply`,'success');
     }
   }
-  S.snap=snap; S.requests=d.requests; S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
+  S.snap=snap; S.requests=d.requests; S.settings=d.settings||S.settings||{officeReports:true,drmReports:true}; S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
   renderAll();
 }
 
@@ -873,6 +891,7 @@ function applyData(d){
 function counts(){ const c={t:S.requests.length,p:0,c:0,r:0}; S.requests.forEach(r=>{ if(r.status==='pending')c.p++; else if(r.status==='completed')c.c++; else c.r++; }); return c; }
 function unreadIds(){ const seen=seenMap(); return S.requests.filter(r=>r.status!=='pending' && r.processedAt && seen[r.id]!==r.processedAt).map(r=>r.id); }
 function renderAll(){
+  applyTabVisibility();
   const c=counts(); $('hsT').textContent=c.t; $('hsP').textContent=c.p; $('hsC').textContent=c.c; $('hsR').textContent=c.r;
   renderTab(); updateBadges();
 }
@@ -891,7 +910,7 @@ function renderTab(){
     case 'records': renderRecords(); break;
     case 'dashboard': renderDashboard(); break;
     case 'users': renderUsers(); break;
-    case 'setup': { const l=getUrl(); $('sUrl').value=l; $('openLinkBtn').href=l||'#'; $('waLinkBtn').href='https://wa.me/?text='+encodeURIComponent('Editing Portal - sign in with your Emp Code and password:\n'+l); } break;
+    case 'setup': { $('setOfficeRep').checked=(S.settings||{}).officeReports!==false; $('setDrmRep').checked=(S.settings||{}).drmReports!==false; const l=getUrl(); $('sUrl').value=l; $('openLinkBtn').href=l||'#'; $('waLinkBtn').href='https://wa.me/?text='+encodeURIComponent('Editing Portal - sign in with your Emp Code and password:\n'+l); } break;
     case 'storage': renderStorage(); break;
   }
 }
@@ -1064,7 +1083,14 @@ document.addEventListener('input',e=>{
   if(f==='amount_from'||f==='amount_to') updateAmountKind(uid);
   if(f==='emp') scheduleLookup(uid);
 });
-document.addEventListener('change',e=>{
+document.addEventListener('change',async e=>{
+  if(e.target.dataset&&e.target.dataset.act==='set-reports'){
+    const cb=e.target, key=cb.dataset.who, val=cb.checked;
+    try{ const r=await api('setSettings',{[key]:val}); S.settings=r; toast('My report tab is now '+(val?'shown':'hidden')+(key==='drmReports'?' for Division Reporting Managers':' for Office Zimedars'),'success'); }
+    catch(err){ cb.checked=!val; if(err.auth) logout(err.message); else toast(err.message,'error'); }
+    return;
+  }
+
   if(e.target.classList.contains('ef-check')){ $(`ef_${e.target.dataset.uid}_${e.target.dataset.key}`).classList.toggle('on',e.target.checked); }
   if(e.target.classList.contains('pfile')) readPic(e.target.dataset.key,e.target.files[0]);
   if(e.target.classList.contains('sigfile')) readSigFile(e.target.dataset.key,e.target.files[0]);
