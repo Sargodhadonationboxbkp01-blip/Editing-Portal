@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#14273D">
 <title>Editing Portal</title>
 <script id="embeddedConfig">window.__PORTAL__ = {url:'https://script.google.com/macros/s/AKfycbzPoP9UL7MSj9liriGmgkwxZwI9sDW0kWPLBaK7EKJA8mTpsSsnfWPe5AJ3qBH4qrn0/exec'};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#14273D; --navy-2:#1F3B5C; --teal:#2E8B84; --teal-d:#226963; --teal-l:#E9F5F4;
@@ -254,6 +255,14 @@ tr.click{cursor:pointer}tr.click:hover{background:#FAF9F5}
 .creds div{display:flex;justify-content:space-between;gap:14px;padding:5px 0;font-size:13px;border-bottom:1px dashed #CFE6E3}
 .creds div:last-child{border-bottom:none}
 .creds span{color:var(--muted)}.creds b{font-family:Consolas,'SF Mono',monospace;font-size:14px;color:var(--navy);word-break:break-all;text-align:right}
+.waitov{position:fixed;inset:0;background:rgba(40,44,52,.72);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(1px)}
+.waitov.show{display:flex}
+.waitbox{background:#fff;border-radius:10px;max-width:480px;width:100%;padding:22px 20px 18px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.waitbox .dur{font-family:'Amiri','Noto Naskh Arabic','Traditional Arabic','Scheherazade New',serif;direction:rtl;font-size:21px;line-height:1.9;color:#111;font-weight:700;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:12px}
+.waitbox .wmsg{font-weight:700;color:var(--navy);font-size:15px}
+.waitbox .wsub{color:var(--muted);font-size:13px;margin-top:4px;min-height:18px}
+.waitbar{height:6px;border-radius:99px;background:#E8E6DF;margin-top:12px;overflow:hidden}
+.waitbar i{display:block;height:100%;width:0;background:var(--navy);border-radius:99px;transition:width .4s linear}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:9px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:200;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;max-width:340px}
 .toast.show{opacity:1;transform:none}.toast.success{background:var(--green-d)}.toast.error{background:var(--red-d)}
 .codebox{width:100%;min-height:200px;font-family:Consolas,monospace;font-size:11.5px;background:#0F1B29;color:#CFE3E8;border:none;border-radius:8px;padding:14px;line-height:1.6}
@@ -679,7 +688,34 @@ const S = {pics:{},forms:[],formSeq:0,autoOffice:false,drm:[],session:null, requ
 function embeddedUrl(){ const u=(window.__PORTAL__&&window.__PORTAL__.url)||''; return u && u.indexOf('__EXEC')!==0 ? u : ''; }
 function getUrl(){ return embeddedUrl() || store.get(LS.url) || ''; }
 const U = () => S.session && S.session.user;
-async function api(action,data){
+/* "Please wait" screen: appears only if something takes longer than 1 second, shows the usual time, and goes away when it is done */
+const WAIT={n:0,timer:null,tick:null,t0:0,est:0,label:''};
+const WAIT_LABEL={login:'Signing in',list:'Loading your data',submit:'Sending your request',respond:'Saving your reply',forward:'Sending to the Division Reporting Manager',reassign:'Reassigning',resubmit:'Sending again',createUser:'Creating the account',createUsersBulk:'Creating the accounts',updateUser:'Saving',bulkUpdateUsers:'Saving districts',setPhones:'Saving numbers',setLeave:'Updating leave',referPending:'Referring requests',deleteRequests:'Deleting',deletePictures:'Deleting pictures',countRequests:'Checking',countPictures:'Checking',getPicture:'Preparing the picture',lookupBox:'Looking up the Box Zimedar'};
+function avgOf(a){ try{ return Number((JSON.parse(store.get('portal_avg_v1'))||{})[a])||0; }catch(e){ return 0; } }
+function saveAvg(a,sec){ try{ const m=JSON.parse(store.get('portal_avg_v1'))||{}; m[a]=m[a]?Math.round((m[a]*0.6+sec*0.4)*10)/10:Math.round(sec*10)/10; store.set('portal_avg_v1',JSON.stringify(m)); }catch(e){} }
+function waitStart(label,est){
+  WAIT.n++; if(WAIT.n>1){ if(label) WAIT.label=label; return; }
+  WAIT.t0=Date.now(); WAIT.label=label||'Please wait'; WAIT.est=est||0;
+  WAIT.timer=setTimeout(()=>{
+    $('waitOv').classList.add('show'); $('waitMsg').textContent=WAIT.label+'…';
+    const upd=()=>{ const el=(Date.now()-WAIT.t0)/1000, est=WAIT.est;
+      $('waitSub').textContent = est ? (el<est?`Usually about ${Math.max(1,Math.round(est))} seconds \u00B7 ${Math.floor(el)} s passed`:`Still working\u2026 ${Math.floor(el)} seconds passed`) : `${Math.floor(el)} seconds passed`;
+      $('waitBar').style.width = est ? Math.min(95,Math.round(el/est*100))+'%' : Math.min(90,Math.round(el*8))+'%'; };
+    upd(); WAIT.tick=setInterval(upd,250);
+  },1000);
+}
+function waitEnd(){
+  WAIT.n=Math.max(0,WAIT.n-1); if(WAIT.n) return;
+  clearTimeout(WAIT.timer); clearInterval(WAIT.tick); $('waitOv').classList.remove('show'); $('waitBar').style.width='0';
+}
+async function withWait(label,fn){ waitStart(label,0); try{ return await fn(); } finally{ waitEnd(); } }
+async function api(action,data,opt){
+  const quiet=!!(opt&&opt.quiet), t0=Date.now();
+  if(!quiet) waitStart(WAIT_LABEL[action]||'Please wait',avgOf(action));
+  try{ const r=await apiRaw(action,data); if(!quiet) saveAvg(action,(Date.now()-t0)/1000); return r; }
+  finally{ if(!quiet) waitEnd(); }
+}
+async function apiRaw(action,data){
   const url=getUrl(); if(!url) throw new Error('The server address is not set.');
   let res;
   try{ res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,token:S.session&&S.session.token},data||{}))}); }
@@ -798,10 +834,10 @@ function patchReq(r){
   S.snap=S.snap||{}; S.snap[r.id]=[r.status,r.processedAt,r.assignedToId,r.resubmitCount].join('|');
   S.loaded=true; renderAll();
 }
-async function refresh(force){
+async function refresh(force,loud){
   if(S.busy||!S.session) return; S.busy=true; setConn('sync','Syncing…');
   try{
-    const d=await api('list',{ifVersion: force?null:S.version});
+    const d=await api('list',{ifVersion: force?null:S.version},{quiet:!(loud||!S.loaded)});
     S.loaded=true;
     if(!d.unchanged) applyData(d);
     setConn('ok','Connected · '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}));
@@ -1064,7 +1100,7 @@ async function runLookup(uid){
   if(code.length<2){ box.classList.add('hidden'); return; }
   try{
     const loc=localBox(code);
-    if(!loc) LOOKUP_CACHE[code]=LOOKUP_CACHE[code]||api('lookupBox',{empCode:code}).catch(e=>{ delete LOOKUP_CACHE[code]; throw e; });
+    if(!loc) LOOKUP_CACHE[code]=LOOKUP_CACHE[code]||api('lookupBox',{empCode:code},{quiet:true}).catch(e=>{ delete LOOKUP_CACHE[code]; throw e; });
     const r=loc||await LOOKUP_CACHE[code]; if(seq!==lookupSeqs[uid]||!$('fc_'+uid)) return;
     box.classList.remove('hidden');
     if(!r.found){ box.className='boxinfo none'; box.textContent='No Box Zimedar found with this Emp Code. Type the name below.'; card.dataset.autoName=''; card.dataset.boxPhone=''; return; }
@@ -1738,7 +1774,7 @@ document.addEventListener('click',e=>{
     case 'gen-pw': $(t.dataset.target).value=genPassword(); break;
     case 'logout': logout(); break;
     case 'change-pw': $('profMenu').classList.add('hidden'); openPwDialog(false); break;
-    case 'refresh': refresh(true); break;
+    case 'refresh': refresh(true,true); break;
     case 'form-clear': clearForm(); break;
     case 'pick-pic': $('pf_'+t.dataset.key).click(); break;
     case 'form-add': addForm(); { const l=S.forms[S.forms.length-1]; const c=$('fc_'+l); if(c&&c.scrollIntoView) c.scrollIntoView({behavior:'smooth',block:'start'}); } break;
@@ -1770,7 +1806,7 @@ document.addEventListener('click',e=>{
         toast('Request reassigned','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is reassigned`); }); break;
     case 'resubmit': modalAction(t,async()=>{
         const r=await api('resubmit',{id,note:$('dmNote').value,picture:S.pics.rs||undefined}); toast('Request sent again','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent again`); }); break;
-    case 'pdf': modalAction(t,async()=>{ toast('Preparing the PDF…'); await downloadPdf(id,Number(t.dataset.i)); toast('PDF downloaded','success'); }); break;
+    case 'pdf': modalAction(t,async()=>{ await withWait('Preparing the PDF',()=>downloadPdf(id,Number(t.dataset.i))); toast('PDF downloaded','success'); }); break;
     case 'print-sheet': printSheet(id,Number(t.dataset.i)); break;
     case 'forward': {
         const drmId=$('dmDrm').value, note=$('dmNote').value;
@@ -1814,5 +1850,6 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('dlg').class
   }
 })();
 </script>
+<div class="waitov" id="waitOv" role="alertdialog" aria-live="polite" aria-label="Please wait"><div class="waitbox"><div class="dur" lang="ar">صَلُّوا عَلَى الحَبِيبِ ! صَلَّى اللهُ تَعَالَى عَلَى مُحَمَّد</div><div class="wmsg" id="waitMsg">Please wait&hellip;</div><div class="wsub" id="waitSub"></div><div class="waitbar"><i id="waitBar"></i></div></div></div>
 </body>
 </html>
