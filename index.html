@@ -381,6 +381,7 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <div class="field grow"><label>Search</label><input id="inSearch" placeholder="Name, emp code, receipt number, sender…"></div>
         <div class="push"><button class="btn btn-ghost" data-act="refresh" id="inRefresh"></button></div>
       </div>
+      <div id="leaveBar"></div>
       <p class="hint" style="margin:0 0 10px">Requests assigned to you that are waiting for a reply &mdash; oldest first.</p>
       <div class="list" id="inList"></div>
     </section>
@@ -643,6 +644,12 @@ function editLine(e){
 function formsMini(r){
   const fs=r.forms||[], many=fs.length>1;
   return `<div class="fsum">${fs.slice(0,4).map((f,i)=>`<div>${many?`<div class="fh">Form ${i+1} &middot; ${esc(f.editingForName)} (${esc(f.editingForEmpCode)}) &middot; Receipt ${esc(f.receiptNumber)}</div>`:''}${f.edits.map(editLine).join('<br>')}${f.decrease?` <span class="muted">${ic('file',12)} Raseed Amount Editing Form attached</span>`:''}</div>`).join('')}${fs.length>4?`<div class="muted">… and ${fs.length-4} more form${fs.length-4===1?'':'s'}</div>`:''}</div>`;
+}
+function referTag(r){
+  const me=U(), mine=me&&me.kind==='office'&&(r.referredIds||[]).includes(me.id)&&r.assignedToId!==me.id&&r.officeId!==me.id;
+  if(mine) return `<span class="pill info" title="You handed this request over">Handed over to ${esc(r.assignedToName)} &middot; ${r.status==='pending'?'still pending':(r.status==='completed'?'completed by '+esc(r.processedByName||r.assignedToName):'returned')}</span>`;
+  if(r.referredFromName) return `<span class="pill info">Referred from ${esc(r.referredFromName)}</span>`;
+  return '';
 }
 function whoLine(r){
   const f=(r.forms||[])[0]||{}, n=(r.forms||[]).length;
@@ -1067,7 +1074,7 @@ async function runLookup(uid){
 }
 function renderOfficeSelect(){
   const sel=$('fOffice'); if(!sel) return; const cur=sel.value;
-  sel.innerHTML=`<option value="">Select Office Zimedar…</option>`+S.office.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})</option>`).join('');
+  sel.innerHTML=`<option value="">Select Office Zimedar…</option>`+S.office.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})${o.onLeave?' \u2014 on leave, goes to '+esc(o.coverName):''}</option>`).join('');
   if(S.office.some(o=>o.id===cur)) sel.value=cur;
   $('fOfficeHint').textContent = (S.loaded && !S.office.length) ? 'No Office Zimedar account exists yet. Please ask the administrator.' : '';
 }
@@ -1177,14 +1184,51 @@ function replyBox(r){
    OFFICE: inbox
    ================================================================ */
 ['inDistrict','inSearch'].forEach(id=>$(id).addEventListener('input',renderInbox));
+function renderLeaveBar(){
+  const el=$('leaveBar'); if(!el) return; const me=U();
+  if(me.kind!=='office'){ el.innerHTML=''; return; }
+  el.innerHTML = me.leaveCoverId
+    ? `<div class="alert warn" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span><b>You are on leave.</b> New requests and your pending work go to <b>${esc(me.leaveCoverName||'your cover')}</b>.</span><button class="btn btn-primary btn-sm" data-act="leave-end">I am back</button></div>`
+    : `<div class="row" style="margin-bottom:10px"><button class="btn btn-ghost btn-sm" data-act="leave-start">Going on leave? Hand over my work</button></div>`;
+}
+function referDialog(who){
+  const pend=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===who.id);
+  if(!pend.length){ toast(who.name+' has no pending requests.','error'); return; }
+  const others=S.office.filter(o=>o.id!==who.id);
+  if(!others.length){ toast('No other Office Zimedar is available.','error'); return; }
+  openDlg({title:'Refer pending requests',
+    body:`<p style="margin:0 0 10px"><b>${pend.length}</b> pending request${pend.length>1?'s':''} of <b>${esc(who.name)}</b> will go to the person below. They will see them in their Inbox and can reply. ${esc(who.name)} keeps the record (marked "Handed over").</p>
+      <div class="field"><label for="rfTo">Refer to</label><select id="rfTo">${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})${o.onLeave?' - on leave':''}</option>`).join('')}</select></div>
+      <div class="muted" style="margin-top:8px;font-size:12.5px">${pend.map(r=>esc(r.id)).join(', ')}</div>`,
+    buttons:[{label:'Cancel'},{label:'Refer all',cls:'btn-primary',onClick:async()=>{
+      const r=await api('referPending',{fromId:who.id,toId:$('rfTo').value}); toast(r.moved+' request'+(r.moved>1?'s':'')+' referred','success'); refresh(true); offerWhatsApp(r.wa,'Referred'); }}]});
+}
+function leaveDialog(who){
+  const others=S.office.filter(o=>o.id!==who.id&&!o.onLeave);
+  if(!others.length){ toast('No other Office Zimedar is available to cover.','error'); return; }
+  const self=who.id===U().id;
+  openDlg({title:self?'Going on leave':'Leave: '+who.name,
+    body:`<p style="margin:0 0 10px">All pending requests ${self?'assigned to you':'of '+esc(who.name)} will move to the Office Zimedar below, and new requests for ${self?'you':esc(who.name)} will also go to them until ${self?'you':'they'} return.</p>
+      <div class="field"><label for="lvCover">Who will cover?</label><select id="lvCover">${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)} (${esc(o.empCode)})</option>`).join('')}</select></div>`,
+    buttons:[{label:'Cancel'},{label:'Start leave',cls:'btn-primary',onClick:async()=>{
+      const r=await api('setLeave',{id:who.id,onLeave:true,coverId:$('lvCover').value});
+      if(self){ const cv=others.find(o=>o.id===$('lvCover').value); S.session.user.leaveCoverId=cv.id; S.session.user.leaveCoverName=cv.name; saveSession(); renderLeaveBar(); }
+      toast(r.moved?`${r.moved} pending request${r.moved>1?'s':''} handed over`:'Leave started','success'); refresh(true); offerWhatsApp(r.wa,'Handed over'); }}]});
+}
+async function endLeave(who){
+  await api('setLeave',{id:who.id,onLeave:false});
+  if(who.id===U().id){ S.session.user.leaveCoverId=''; S.session.user.leaveCoverName=''; saveSession(); renderLeaveBar(); }
+  toast('Welcome back. New requests will come to you again.','success'); refresh(true);
+}
 function renderInbox(){
+  renderLeaveBar();
   if(!S.loaded){ $('inList').innerHTML=loadingHtml; return; }
   const d=$('inDistrict').value, q=$('inSearch').value.trim();
   const items=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===U().id&&(!d||r.district===d)&&matches(r,q)).sort((a,b)=>new Date(a.lastSubmittedAt)-new Date(b.lastSubmittedAt));
   $('inList').innerHTML = items.length ? items.map(r=>{
     const w=waitHours(r), late=w>=48;
     return `<div class="rc pending">
-      <div class="top"><div><div class="idl">${esc(r.id)} &middot; Received ${fmtDT(r.lastSubmittedAt)}${r.resubmitCount?` &middot; <b>sent again (${r.resubmitCount})</b>`:''}</div>
+      <div class="top"><div><div class="idl">${esc(r.id)} &middot; Received ${fmtDT(r.lastSubmittedAt)}${r.resubmitCount?` &middot; <b>sent again (${r.resubmitCount})</b>`:''} ${referTag(r)}</div>
         <h3>${whoLine(r)}</h3>
         <div class="meta">${esc(r.district)} &middot; From <b>${esc(r.senderName)}</b>${roleTag(r.sentByRole)} &middot; Receipt ${esc(r.receiptNumber)} &middot; Book ${esc(r.raseedBookNumber)} &middot; ${esc(fmtMonthKey(r.editingMonth))}${r.withDrm?` &middot; <b>forwarded by ${esc(r.officeName)}</b>`:''}</div></div>
         <span class="wait ${late?'late':''}">${ic('clock',13)} Waiting ${fmtDur(w)}</span></div>
@@ -1201,7 +1245,7 @@ function renderInbox(){
 ['rMonth','rDistrict','rStatus','rOffice','rRole','rSearch'].forEach(id=>$(id).addEventListener('input',renderRecords));
 function recordsFiltered(){
   const m=$('rMonth').value,d=$('rDistrict').value,st=$('rStatus').value,o=$('rOffice').value,ro=$('rRole').value,q=$('rSearch').value.trim();
-  return S.requests.filter(r=>(!m||monthKeyOf(r.createdAt)===m)&&(!d||r.district===d)&&(!st||r.status===st)&&(!o||r.officeId===o)&&(!ro||r.sentByRole===ro)&&matches(r,q))
+  return S.requests.filter(r=>(!m||monthKeyOf(r.createdAt)===m)&&(!d||r.district===d)&&(!st||r.status===st)&&(!o||r.officeId===o||(r.referredIds||[]).includes(o))&&(!ro||r.sentByRole===ro)&&matches(r,q))
     .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
 }
 function fillSelectKeep(el,html){ const cur=el.value; el.innerHTML=html; if([...el.options].some(o=>o.value===cur)) el.value=cur; }
@@ -1221,7 +1265,7 @@ function renderRecords(){
     <td>${esc(r.senderName)}${roleTag(r.sentByRole)}<div class="muted">${esc(r.senderEmpCode||'')}</div></td>
     <td>${esc(r.editingForName)}<div class="muted">${esc(r.editingForEmpCode)}${r.formCount>1?` &middot; +${r.formCount-1} more form${r.formCount>2?'s':''}`:''}</div></td>
     <td>${esc(fmtMonthKey(r.editingMonth))}<div class="muted">Book ${esc(r.raseedBookNumber)} &middot; Receipt ${esc(r.receiptNumber)}</div></td>
-    <td>${esc(r.editTypes)}</td><td>${esc(r.assignedToName)}${r.withDrm?`<div class="muted">sent on by ${esc(r.officeName)}</div>`:''}${!r.withDrm&&r.drmName?`<div class="muted">DRM: ${esc(r.drmName)}</div>`:''}</td><td>${pill(r.status)}</td>
+    <td>${esc(r.editTypes)}</td><td>${esc(r.assignedToName)}${referTag(r)?`<div>${referTag(r)}</div>`:''}${r.withDrm?`<div class="muted">sent on by ${esc(r.officeName)}</div>`:''}${!r.withDrm&&r.drmName?`<div class="muted">DRM: ${esc(r.drmName)}</div>`:''}</td><td>${pill(r.status)}</td>
     <td>${r.processedAt&&r.status!=='pending'?fmtDT(r.processedAt)+'<div class="muted">'+esc(r.processedByName)+'</div>':'-'}</td>
     <td class="num">${r.status==='pending'?`<span class="wait ${waitHours(r)>=48?'late':''}">${fmtDur(waitHours(r))}</span>`:fmtDur(respHours(r))}</td></tr>`).join('')
     : `<tr><td colspan="11">${emptyState('No records match your filters.')}</td></tr>`;
@@ -1357,6 +1401,8 @@ function renderUsers(){
     <td>${u.lastLoginAt?fmtDT(u.lastLoginAt):'<span class="muted">Never</span>'}${u.mustChange?'<div class="muted">Temporary password</div>':''}</td>
     <td>${u.active?'<span class="pill ok">Active</span>':'<span class="pill off">Inactive</span>'}</td>
     <td><div class="row" style="flex-wrap:nowrap">
+      ${u.role==='Office Zimedar'?`<button class="btn btn-ghost btn-sm" data-act="user-refer" data-id="${esc(u.id)}">Refer pending</button>`:''}
+      ${u.role==='Office Zimedar'?(u.leaveCoverId?`<button class="btn btn-ghost btn-sm" data-act="user-leave-end" data-id="${esc(u.id)}" title="On leave, covered by ${esc(u.leaveCoverName)}">Back from leave</button>`:`<button class="btn btn-ghost btn-sm" data-act="user-leave" data-id="${esc(u.id)}">On leave</button>`):''}
       <button class="btn btn-ghost btn-sm" data-act="user-edit" data-id="${esc(u.id)}">Edit</button>
       <button class="btn btn-ghost btn-sm" data-act="user-reset" data-id="${esc(u.id)}">Reset password</button>
       <button class="btn btn-ghost btn-sm" data-act="user-toggle" data-id="${esc(u.id)}">${u.active?'Deactivate':'Activate'}</button></div></td></tr>`).join('')
@@ -1678,11 +1724,21 @@ document.addEventListener('click',e=>{
         const r=await api('resubmit',{id,note:$('dmNote').value,picture:S.pics.rs||undefined}); toast('Request sent again','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent again`); }); break;
     case 'pdf': modalAction(t,async()=>{ toast('Preparing the PDF…'); await downloadPdf(id,Number(t.dataset.i)); toast('PDF downloaded','success'); }); break;
     case 'print-sheet': printSheet(id,Number(t.dataset.i)); break;
-    case 'forward': modalAction(t,async()=>{
-        const r=await api('forward',{id,drmId:$('dmDrm').value,note:$('dmNote').value});
-        toast('Sent to the Division Reporting Manager','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent to the Division Reporting Manager`); }); break;
+    case 'forward': {
+        const drmId=$('dmDrm').value, note=$('dmNote').value;
+        openDlg({title:'Please confirm before sending',
+          body:`<p style="margin:0 0 8px"><b>Have you removed (unchecked) this increased amount from the deposit?</b></p><p class="hint" style="margin:0">The amount must be taken out of the deposit first. Only then should the request go to the Division Reporting Manager.</p>`,
+          buttons:[{label:'No, not yet'},{label:'Yes, it is removed &mdash; send',cls:'btn-primary',onClick:async()=>{
+            const r=await api('forward',{id,drmId,note,confirmUnchecked:true});
+            toast('Sent to the Division Reporting Manager','success'); closeModal(); patchReq(r.request); refresh(true); offerWhatsApp(r.wa,`Request ${id} is sent to the Division Reporting Manager`); }}]});
+        break; }
     case 'user-wa': modalAction(t,async()=>{ await api('testWhatsApp',{id}); toast('Test message sent to WhatsApp','success'); }); break;
     case 'user-edit': editUserDialog(S.users.find(x=>x.id===id)); break;
+    case 'leave-start': leaveDialog(U()); break;
+    case 'leave-end': modalAction(t,()=>endLeave(U())); break;
+    case 'user-refer': referDialog(S.users.find(x=>x.id===id)); break;
+    case 'user-leave': leaveDialog(S.users.find(x=>x.id===id)); break;
+    case 'user-leave-end': modalAction(t,()=>endLeave(S.users.find(x=>x.id===id))); break;
     case 'user-phone': phoneDialog(S.users.find(x=>x.id===id)); break;
     case 'sel-dist': bulkDistrictsDialog(t.dataset.mode); break;
     case 'sel-clear': S.sel.clear(); document.querySelectorAll('#uBody .usel,#uSelAll').forEach(c=>c.checked=false); updateSelBar(); break;
