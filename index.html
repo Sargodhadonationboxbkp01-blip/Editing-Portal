@@ -49,6 +49,9 @@ button{font-family:inherit}
 .pw button:hover{color:var(--navy);background:#F2F0EA}
 .alert{padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5}
 .alert.error{background:var(--red-l);color:var(--red-d);border:1px solid #F0C3BC}
+.alert.ok{background:var(--green-l,#E3F3E6);color:#1B5E2B;border:1px solid #BFE0C6}
+.alert.info{background:#EAF2FB;color:#1D3F6E;border:1px solid #C9DBF1}
+.btn-tg{background:#229ED9;color:#fff}.btn-tg:hover{background:#1B8CC2}
 .alert.warn{background:var(--amber-l);color:#7A5410;border:1px solid #EFD9A6}
 
 /* ---------- auth screens ---------- */
@@ -325,6 +328,8 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
 <!-- ============== APP ============== -->
 <div id="appShell" class="hidden">
   <div class="banner warn hidden" id="adminBanner"></div>
+<div class="alert info hidden" id="pushBanner" style="margin:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span id="pushBannerText"></span><button class="btn btn-primary btn-sm" id="pushBannerBtn" data-act="push-toggle">Turn on alerts</button><button class="btn btn-ghost btn-sm" data-act="push-dismiss">Not now</button></div>
+<div class="alert info hidden" id="tgBanner" style="margin:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span><b>Get alerts on your phone.</b> New requests and replies can reach you as a Telegram message with sound, even when the portal is closed.</span><button class="btn btn-primary btn-sm" data-act="tg-open">Set up (free)</button><button class="btn btn-ghost btn-sm" data-act="tg-dismiss">Not now</button></div>
   <header class="top">
     <div class="brand">
       <div class="mark">EP</div>
@@ -341,6 +346,8 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <button class="prof-btn" id="profBtn" aria-haspopup="true" aria-expanded="false"><span class="avatar" id="avatar"></span><span class="pname"><b id="pName"></b><small id="pRole"></small></span></button>
         <div class="menu hidden" id="profMenu" role="menu">
           <div class="who"><b id="mName"></b><span id="mSub"></span></div>
+          <button data-act="push-toggle" id="mPush"></button>
+          <button data-act="tg-open" id="mTg"></button>
           <button data-act="toggle-sound" id="mSound"></button>
           <button data-act="change-pw" id="mPw"></button>
           <button data-act="logout" class="danger" id="mOut"></button>
@@ -529,6 +536,13 @@ ol.steps code{background:#EFEBE2;padding:1px 6px;border-radius:4px;font-size:12p
         <p class="sub">Send this link to your team on WhatsApp or by SMS. Anyone who opens it sees the sign-in page and signs in with their own Emp Code and password. Nobody needs a file. On a phone they can tap <b>Add to Home screen</b> in the browser menu to keep it like an app.</p>
         <div class="field"><input id="sUrl" readonly></div>
         <div class="row" style="margin-top:10px"><button class="btn btn-primary" data-act="copy-link" id="copyLinkBtn"></button><a class="btn btn-ghost" id="openLinkBtn" target="_blank" rel="noopener">Open link</a><a class="btn btn-wa" id="waLinkBtn" target="_blank" rel="noopener"></a></div>
+      </div>
+      <div class="card">
+        <h2>Phone alerts with sound (Telegram, free)</h2>
+        <p class="sub">The portal can only make a sound while it is open. For alerts that arrive even when the page is closed, create a free Telegram bot and paste its token here. Everyone then connects their own Telegram once (menu &rarr; Phone alerts).</p>
+        <ol style="margin:0 0 12px 18px;padding:0;line-height:1.8"><li>In Telegram open <b>@BotFather</b> &rarr; send <code>/newbot</code> &rarr; choose a name and a username ending in <code>bot</code>.</li><li>BotFather replies with a <b>token</b> like <code>123456789:AAH...</code>. Copy it.</li><li>Paste it below and press <b>Save bot</b>.</li></ol>
+        <div class="field" style="max-width:560px"><label for="tgToken">Bot token</label><input id="tgToken" autocomplete="off" spellcheck="false" placeholder="123456789:AAH..."></div>
+        <div class="row" style="margin-top:12px"><button class="btn btn-primary" data-act="tg-save">Save bot</button><button class="btn btn-ghost" data-act="tg-remove">Remove bot</button><span class="muted" id="tgState"></span></div>
       </div>
       <div class="card">
         <h2>What Office Zimedars can see</h2>
@@ -724,10 +738,10 @@ async function api(action,data,opt){
   try{ const r=await apiRaw(action,data); if(!quiet) saveAvg(action,(Date.now()-t0)/1000); return r; }
   finally{ if(!quiet) waitEnd(); }
 }
-async function apiRaw(action,data){
+async function apiRaw(action,data,tokenOverride){
   const url=getUrl(); if(!url) throw new Error('The server address is not set.');
   let res;
-  try{ res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,token:S.session&&S.session.token},data||{}))}); }
+  try{ res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,token:tokenOverride||(S.session&&S.session.token)},data||{}))}); }
   catch(e){ throw new Error('Cannot reach the server. Please check your internet connection.'); }
   let j; try{ j=await res.json(); }catch(e){ throw new Error('The server returned an unexpected reply. Please check that the Web App is deployed with access set to "Anyone".'); }
   if(!j.ok){ const auth=/^AUTH:/.test(j.error||''); const err=new Error((j.error||'Something went wrong').replace(/^AUTH:\s*/,'')); err.auth=auth; throw err; }
@@ -776,6 +790,7 @@ $('loginForm').addEventListener('submit', async e=>{
 });
 
 function logout(msg){
+  try{ if(S.pushOn&&S.session&&pushSupported()){ const tok=S.session.token; pushReg().then(r=>r.pushManager.getSubscription()).then(s=>{ if(s) apiRaw('pushUnsubscribe',{endpoint:s.endpoint},tok).catch(()=>{}); }); } S.pushOn=false; }catch(e){}
   Object.keys(LOOKUP_CACHE).forEach(k=>delete LOOKUP_CACHE[k]);
   store.del(LS.session); S.session=null; clearInterval(S.timer); closeDlg(true); closeModal();
   S.requests=[]; S.users=[]; S.office=[]; S.version=null; S.snap=null; S.loaded=false; document.title='Editing Portal';
@@ -799,6 +814,7 @@ function enter(){
   start();
 }
 function start(){
+  pushSync();
   showTab(TABS[U().kind][0][0]); refresh(true);
   clearInterval(S.timer); S.tick=0; S.timer=setInterval(()=>{ S.tick++; if(S.session && !U().mustChange && (!document.hidden || S.tick%3===0)) refresh(false); },POLL_MS);
 }
@@ -884,7 +900,7 @@ function applyData(d){
     }
   }
   if(!prev && isOfficeLike(kind)){ const w=d.requests.filter(r=>r.status==='pending'&&r.assignedToId===U().id).length; if(w){ playChime('new'); toast(`${w} request${w>1?'s are':' is'} waiting for your reply`,'success'); } }
-  S.snap=snap; S.requests=d.requests; S.settings=d.settings||S.settings||{officeReports:true,drmReports:true}; S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
+  S.snap=snap; S.requests=d.requests; S.settings=d.settings||S.settings||{officeReports:true,drmReports:true}; S.tgOn=!!d.tgOn; renderTgBtn(); S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
   renderAll();
 }
 
@@ -915,7 +931,74 @@ function alertUser(kind,title,body){
 }
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) document.title=BASE_TITLE; });
 const BASE_TITLE=document.title;
-function renderSoundBtn(){ const b=$('mSound'); if(b) b.innerHTML=ic('bell',16)+' Notification sound: '+(soundOn()?'On':'Off'); }
+
+/* ---------- Phone / computer alerts (Web Push): arrive even when the portal is closed ---------- */
+function pushSupported(){
+  try{ return window.top===window && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && (location.protocol==='https:'||location.hostname==='localhost'); }catch(e){ return false; }
+}
+function isIosBrowser(){ try{ return /iPhone|iPad|iPod/.test(navigator.userAgent) && !(navigator.standalone || (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)); }catch(e){ return false; } }
+function u8FromB64u(s){ const p='='.repeat((4-s.length%4)%4), r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from([...r].map(c=>c.charCodeAt(0))); }
+async function pushReg(){ if(!S.swReg){ S.swReg=await navigator.serviceWorker.register('sw.js'); } return navigator.serviceWorker.ready.then(()=>S.swReg); }
+async function pushState(){
+  if(!pushSupported()||Notification.permission!=='granted') return false;
+  try{ const reg=await pushReg(); return !!(await reg.pushManager.getSubscription()); }catch(e){ return false; }
+}
+async function pushEnable(){
+  if(!pushSupported()){ toast('This browser cannot receive alerts. Please use Chrome.','error'); return; }
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){ toast('Alerts are blocked. Tap the lock icon next to the address, allow Notifications, then try again.','error'); return; }
+  const reg=await pushReg();
+  const key=(await api('pushKey',{})).publicKey;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub){ try{ sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8FromB64u(key)}); }
+    catch(e){ const old=await reg.pushManager.getSubscription(); if(old) await old.unsubscribe(); sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8FromB64u(key)}); } }
+  await api('pushSubscribe',{endpoint:sub.endpoint});
+  S.pushOn=true; renderTgBtn(); toast('Alerts are on for this device','success');
+}
+async function pushDisable(){
+  try{ const reg=await pushReg(), sub=await reg.pushManager.getSubscription(); if(sub){ await api('pushUnsubscribe',{endpoint:sub.endpoint},{quiet:true}); await sub.unsubscribe(); } }catch(e){}
+  S.pushOn=false; renderTgBtn(); toast('Alerts turned off for this device');
+}
+async function pushSync(){   // after sign-in: make sure this browser's address belongs to the person signed in
+  if(!pushSupported()||!U()||U().kind==='admin') { S.pushOn=false; renderTgBtn(); return; }
+  try{ const on=await pushState(); S.pushOn=on; if(on){ const reg=await pushReg(), sub=await reg.pushManager.getSubscription(); if(sub) await api('pushSubscribe',{endpoint:sub.endpoint},{quiet:true}); } }catch(e){}
+  renderTgBtn();
+}
+function renderTgBtn(){
+  const pb=$('mPush'); if(pb){ const u0=U(); const can=pushSupported()&&u0.kind!=='admin'; pb.classList.toggle('hidden',!can); pb.innerHTML=ic('bell',16)+' Alerts on this device: '+(S.pushOn?'On':'Off'); }
+  const pn=$('pushBanner'); if(pn){ const u1=U(); const base=u1.kind!=='admin'&&!S.pushOn&&store.get('portal_push_dismiss')!==u1.id;
+    const ios=base&&isIosBrowser()&&/Safari/.test(navigator.userAgent);
+    pn.classList.toggle('hidden',!(base&&(pushSupported()||ios)));
+    $('pushBannerText').innerHTML = ios&&!pushSupported() ? '<b>Get alerts on your iPhone.</b> Tap the Share button, choose <b>Add to Home Screen</b>, then open the portal from the home screen and turn alerts on.' : '<b>Turn on alerts for this phone.</b> New requests and replies will pop up with sound, even when the portal is closed. One tap, nothing to install.';
+    $('pushBannerBtn').classList.toggle('hidden',!pushSupported()); }
+  const b=$('mTg'); if(!b) return; const u=U();
+  b.classList.toggle('hidden',u.kind==='admin'); b.innerHTML=ic('bell',16)+' Phone alerts (Telegram): '+(u.tgConnected?'On':'Set up');
+  const bn=$('tgBanner'); if(bn){ const show=u.kind!=='admin'&&S.tgOn&&!u.tgConnected&&!pushSupported()&&store.get('portal_tg_dismiss')!==u.id; bn.classList.toggle('hidden',!show); }
+}
+async function tgSave(remove){
+  const tok=remove?'':$('tgToken').value.trim(); if(!remove&&!tok){ toast('Please paste the bot token first.','error'); return; }
+  try{ const r=await api('setTelegram',{botToken:tok}); S.tgOn=r.configured; $('tgToken').value=''; $('tgState').textContent=r.configured?'Connected to @'+r.username:'Not set up'; toast(r.configured?'Telegram bot connected (@'+r.username+')':'Telegram bot removed','success'); }
+  catch(e){ if(e.auth){ logout(e.message); return; } toast(e.message,'error'); }
+}
+function tgDialog(){
+  const u=U();
+  const done=(c)=>{ S.session.user.tgConnected=c; saveSession(); renderTgBtn(); };
+  api('tgLink',{}).then(info=>{
+    if(!info.configured){ openDlg({title:'Phone alerts (Telegram)',body:'<p style="margin:0">Telegram alerts are not set up yet. Please ask the administrator to set them up (Setup tab).</p>',buttons:[{label:'Close'}]}); return; }
+    if(info.connected){
+      openDlg({title:'Phone alerts (Telegram)',body:`<div class="alert ok" style="margin:0 0 10px">${ic('check',16)} <span>Telegram alerts are <b>on</b>. New requests and replies reach your phone with sound, even when the portal is closed.</span></div>`,
+        buttons:[{label:'Close'},{label:'Turn off',cls:'btn-danger',onClick:async()=>{ await api('tgDisconnect',{}); done(false); toast('Telegram alerts turned off'); }}]}); return; }
+    openDlg({title:'Get alerts on your phone (free)',
+      body:`<ol style="margin:0 0 6px 18px;padding:0;line-height:1.8"><li>Install <b>Telegram</b> on your phone (free), if you do not have it.</li><li>Tap the green button below. Telegram opens &mdash; press <b>START</b>.</li><li>Come back here and tap <b>I pressed Start</b>.</li></ol>
+        <p style="margin:10px 0"><a class="btn btn-tg" href="${esc(info.url)}" target="_blank" rel="noopener">Open Telegram</a></p>
+        <p class="hint" style="margin:0">After this, every new request or reply arrives as a Telegram message with your phone's notification sound &mdash; even when this page is closed. Only you can use this link.</p>`,
+      buttons:[{label:'Later'},{label:'I pressed Start',cls:'btn-primary',onClick:async()=>{
+        const r=await api('tgCheck',{});
+        if(!r.connected) throw new Error('Not connected yet. Open Telegram, press START, then tap this button again.');
+        done(true); toast('Telegram alerts are on','success'); }}]});
+  }).catch(e=>{ if(e.auth) logout(e.message); else toast(e.message,'error'); });
+}
+function renderSoundBtn(){ renderTgBtn(); const b=$('mSound'); if(b) b.innerHTML=ic('bell',16)+' Notification sound: '+(soundOn()?'On':'Off'); }
 
 /* ================================================================
    RENDER DISPATCH
@@ -942,7 +1025,7 @@ function renderTab(){
     case 'records': renderRecords(); break;
     case 'dashboard': renderDashboard(); break;
     case 'users': renderUsers(); break;
-    case 'setup': { $('setOfficeRep').checked=(S.settings||{}).officeReports!==false; $('setDrmRep').checked=(S.settings||{}).drmReports!==false; const l=getUrl(); $('sUrl').value=l; $('openLinkBtn').href=l||'#'; $('waLinkBtn').href='https://wa.me/?text='+encodeURIComponent('Editing Portal - sign in with your Emp Code and password:\n'+l); } break;
+    case 'setup': { $('tgState').textContent=S.tgOn?'A bot is connected':'Not set up'; $('setOfficeRep').checked=(S.settings||{}).officeReports!==false; $('setDrmRep').checked=(S.settings||{}).drmReports!==false; const l=getUrl(); $('sUrl').value=l; $('openLinkBtn').href=l||'#'; $('waLinkBtn').href='https://wa.me/?text='+encodeURIComponent('Editing Portal - sign in with your Emp Code and password:\n'+l); } break;
     case 'storage': renderStorage(); break;
   }
 }
@@ -1502,7 +1585,7 @@ function renderUsers(){
   $('uBody').innerHTML=items.length?items.map(u=>`<tr>
     <td>${u.role==='Office Zimedar'||u.role===DRM?'':`<input type="checkbox" class="usel" data-id="${esc(u.id)}" ${S.sel.has(u.id)?'checked':''} aria-label="Select ${esc(u.name)}">`}</td>
     <td><b>${esc(u.name)}</b></td><td>${esc(u.empCode)}</td><td>${roleTag(u.role)}${u.role==='Box Zimedar'?`<div class="muted">Reports to ${esc(u.officeName||'— not set —')}</div>`:''}</td><td>${esc(u.district||'—')}</td>
-    <td>${u.phone?`<span class="wa-ok">+${esc(u.phone)}</span>${u.waKey?`<div class="muted">Automatic · <button class="linkbtn" data-act="user-wa" data-id="${esc(u.id)}">Send test</button></div>`:'<div class="muted">One-tap button</div>'}`:`<span class="wa-no">Not added</span> <button class="linkbtn" data-act="user-phone" data-id="${esc(u.id)}">Add number</button>`}</td><td>${userStats(u)}</td>
+    <td>${u.phone?`<span class="wa-ok">+${esc(u.phone)}</span>${u.waKey?`<div class="muted">Automatic · <button class="linkbtn" data-act="user-wa" data-id="${esc(u.id)}">Send test</button></div>`:'<div class="muted">One-tap button</div>'}`:`<span class="wa-no">Not added</span> <button class="linkbtn" data-act="user-phone" data-id="${esc(u.id)}">Add number</button>`}${u.tgConnected?'<div class="muted" style="font-size:12px">Telegram on</div>':''}</td><td>${userStats(u)}</td>
     <td>${u.lastLoginAt?fmtDT(u.lastLoginAt):'<span class="muted">Never</span>'}${u.mustChange?'<div class="muted">Temporary password</div>':''}</td>
     <td>${u.active?'<span class="pill ok">Active</span>':'<span class="pill off">Inactive</span>'}</td>
     <td><div class="row" style="flex-wrap:nowrap">
@@ -1878,6 +1961,12 @@ document.addEventListener('click',e=>{
     case 'user-edit': editUserDialog(S.users.find(x=>x.id===id)); break;
     case 'leave-start': leaveDialog(U()); break;
     case 'leave-end': modalAction(t,()=>endLeave(U())); break;
+    case 'push-toggle': (S.pushOn?pushDisable():pushEnable()).catch(e=>{ if(e.auth) logout(e.message); else toast(e.message||'Could not turn on alerts','error'); }); break;
+    case 'push-dismiss': store.set('portal_push_dismiss',U().id); renderTgBtn(); break;
+    case 'tg-open': tgDialog(); break;
+    case 'tg-dismiss': store.set('portal_tg_dismiss',U().id); renderTgBtn(); break;
+    case 'tg-save': tgSave(); break;
+    case 'tg-remove': tgSave(true); break;
     case 'toggle-sound': store.set('portal_sound_v1',soundOn()?'off':'on'); renderSoundBtn(); if(soundOn()){ unlockAudio(); playChime('new'); } toast('Notification sound '+(soundOn()?'on':'off')); break;
     case 'user-refer': referDialog(S.users.find(x=>x.id===id)); break;
     case 'user-leave': leaveDialog(S.users.find(x=>x.id===id)); break;
