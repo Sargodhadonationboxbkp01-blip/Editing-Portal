@@ -900,7 +900,7 @@ function applyData(d){
     }
   }
   if(!prev && isOfficeLike(kind)){ const w=d.requests.filter(r=>r.status==='pending'&&r.assignedToId===U().id).length; if(w){ playChime('new'); toast(`${w} request${w>1?'s are':' is'} waiting for your reply`,'success'); } }
-  S.snap=snap; S.requests=d.requests; S.settings=d.settings||S.settings||{officeReports:true,drmReports:true}; S.tgOn=!!d.tgOn; renderTgBtn(); S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
+  S.snap=snap; S.requests=d.requests; S.settings=d.settings||S.settings||{officeReports:true,drmReports:true}; S.tgOn=!!d.tgOn; if(d.leave&&S.session){ S.session.user.leaveCoverId=d.leave.coverId; S.session.user.leaveCoverName=d.leave.coverName; } renderTgBtn(); S.office=d.office||[]; S.boxes=d.boxes||S.boxes||[]; S.users=d.users||S.users; S.drm=d.drm||[]; S.version=d.version;
   renderAll();
 }
 
@@ -1374,10 +1374,8 @@ function replyBox(r){
 ['inDistrict','inSearch'].forEach(id=>$(id).addEventListener('input',renderInbox));
 function renderLeaveBar(){
   const el=$('leaveBar'); if(!el) return; const me=U();
-  if(me.kind!=='office'){ el.innerHTML=''; return; }
-  el.innerHTML = me.leaveCoverId
-    ? `<div class="alert warn" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><span><b>You are on leave.</b> New requests and your pending work go to <b>${esc(me.leaveCoverName||'your cover')}</b>.</span><button class="btn btn-primary btn-sm" data-act="leave-end">I am back</button></div>`
-    : `<div class="row" style="margin-bottom:10px"><button class="btn btn-ghost btn-sm" data-act="leave-start">Going on leave? Hand over my work</button></div>`;
+  el.innerHTML = me.kind==='office'&&me.leaveCoverId
+    ? `<div class="alert warn" style="margin-bottom:10px"><b>You are marked on leave.</b> New requests and your pending work go to <b>${esc(me.leaveCoverName||'your cover')}</b>. The administrator will switch this off when you are back.</div>` : '';
 }
 function referDialog(who){
   const pend=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===who.id);
@@ -1589,7 +1587,7 @@ function renderUsers(){
     <td>${u.lastLoginAt?fmtDT(u.lastLoginAt):'<span class="muted">Never</span>'}${u.mustChange?'<div class="muted">Temporary password</div>':''}</td>
     <td>${u.active?'<span class="pill ok">Active</span>':'<span class="pill off">Inactive</span>'}</td>
     <td><div class="row" style="flex-wrap:nowrap">
-      ${u.role==='Office Zimedar'?`<button class="btn btn-ghost btn-sm" data-act="user-refer" data-id="${esc(u.id)}">Refer pending</button>`:''}
+      ${u.role==='Office Zimedar'?`<button class="btn btn-ghost btn-sm" data-act="user-refer" data-id="${esc(u.id)}">Refer pending${(()=>{ const n=S.requests.filter(r=>r.status==='pending'&&r.assignedToId===u.id).length; return n?' ('+n+')':''; })()}</button>`:''}
       ${u.role==='Office Zimedar'?(u.leaveCoverId?`<button class="btn btn-ghost btn-sm" data-act="user-leave-end" data-id="${esc(u.id)}" title="On leave, covered by ${esc(u.leaveCoverName)}">Back from leave</button>`:`<button class="btn btn-ghost btn-sm" data-act="user-leave" data-id="${esc(u.id)}">On leave</button>`):''}
       <button class="btn btn-ghost btn-sm" data-act="user-edit" data-id="${esc(u.id)}">Edit</button>
       <button class="btn btn-ghost btn-sm" data-act="user-reset" data-id="${esc(u.id)}">Reset password</button>
@@ -1840,7 +1838,7 @@ function openDetail(id){
       <div class="row" style="margin-top:10px">${mustForward?'':`<button class="btn btn-success" data-act="respond" data-id="${esc(r.id)}" data-status="completed">${ic('check')} Approve &mdash; editing done</button>`}
       <button class="btn btn-danger" data-act="respond" data-id="${esc(r.id)}" data-status="returned">${ic('undo')} Return with reason</button></div>
       ${canForward?`<div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px"><select id="dmDrm" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px">${S.drm.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><button class="btn btn-primary btn-sm" data-act="forward" data-id="${esc(r.id)}">${ic('send',14)} Send to Division Reporting Manager</button></div>`:(mustForward?`<p class="hint" style="margin-top:10px">No Division Reporting Manager account exists yet. Please ask the administrator.</p>`:'')}
-      ${officeSide&&others.length?`<div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px"><select id="dmReassign" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px">${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" data-act="reassign" data-id="${esc(r.id)}">Reassign to this person</button></div>`:''}</div>`;
+      ${kind==='admin'&&others.length?`<div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px"><select id="dmReassign" style="padding:8px;border:1px solid var(--line);border-radius:7px;font-size:13px">${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" data-act="reassign" data-id="${esc(r.id)}">Reassign to this person</button></div>`:''}</div>`;
   } else if(kind==='field' && r.status==='returned'){
     actions=`<div class="actbox"><div class="field"><label for="dmNote">Your reply / clarification <span class="req">*</span></label><textarea id="dmNote" placeholder="Answer the question or explain what you have corrected"></textarea></div>
       <div class="field"><label>Add a picture <span class="muted">optional</span></label>${picBlock('rs',false)}</div>
@@ -1959,8 +1957,6 @@ document.addEventListener('click',e=>{
         break; }
     case 'user-wa': modalAction(t,async()=>{ await api('testWhatsApp',{id}); toast('Test message sent to WhatsApp','success'); }); break;
     case 'user-edit': editUserDialog(S.users.find(x=>x.id===id)); break;
-    case 'leave-start': leaveDialog(U()); break;
-    case 'leave-end': modalAction(t,()=>endLeave(U())); break;
     case 'push-toggle': (S.pushOn?pushDisable():pushEnable()).catch(e=>{ if(e.auth) logout(e.message); else toast(e.message||'Could not turn on alerts','error'); }); break;
     case 'push-dismiss': store.set('portal_push_dismiss',U().id); renderTgBtn(); break;
     case 'tg-open': tgDialog(); break;
